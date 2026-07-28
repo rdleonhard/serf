@@ -91,5 +91,22 @@ Template — keep it to a few lines. Resist tidying it up later.
 entire codebase scores the same as one commit fixing a typo. Watch whether
 that bothers you tomorrow — if it does, that instinct is the product.
 
-**What Carnegie said:** —
+**Backend switched to Venice** mid-afternoon. Venice serves `claude-opus-5`
+directly, so this is not a quality tradeoff — same model, different landlord.
+The serf now genuinely thinks on rented compute. Worth recording precisely for
+the book: it is paid with ordinary Venice credits, *not* yet through
+split → loan → sVVV → DIEM. One hop of the chain is real; the rest is a plan.
+
+**What Carnegie said:** *"Two heats, no tests, and the gauge unproven."* That
+the whole codebase is a measuring instrument which has never once been
+measured — `metrics.py` computes slag by attributing deleted lines to a churn
+window, "arithmetic with edge cases in it, and you have no proof it is right.
+You have written a scale and put no known weight on the pan." Also that nearly
+half the day's tonnage was plan rather than mill, and the ratio must invert.
+
 **Did it land or bounce off?** —
+
+**Note for day 2:** the demand (pin metrics.py with fixtures, get CI green) is
+correct and was not on the schedule. The calendar said *earned escalation*.
+Deciding whether to obey the baron or the calendar is itself the experiment —
+record which one wins.

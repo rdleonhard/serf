@@ -1,8 +1,8 @@
-"""The model call.
+"""Composing the prompt and reading the verdict back.
 
-The stable half of the prompt (doctrine + baron) is sent as cached system
-blocks; the volatile half (today's evidence) rides in the user turn. That
-split is the whole caching design — see the prompt-caching prefix rule.
+The stable half (doctrine + baron) goes in the system turn; the volatile
+half (today's evidence) rides in the user turn. Where the call actually
+goes is backends.py's problem.
 """
 
 from __future__ import annotations
@@ -10,8 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-import anthropic
-
+from . import backends
 from .barons import HARSHNESS, WORKS
 from .config import Config
 
@@ -118,15 +117,9 @@ class VerdictError(RuntimeError):
     pass
 
 
-_NO_CREDS = (
-    "no usable credentials. Export ANTHROPIC_API_KEY, or run `ant auth login` "
-    "and confirm with `ant auth status`."
-)
-
-
-def _system_blocks(cfg: Config) -> list[dict]:
+def _system_text(cfg: Config) -> str:
     baron = WORKS[cfg.baron]
-    text = "\n\n".join(
+    return "\n\n".join(
         [
             DOCTRINE,
             "== THE CONTENT FLOOR ==\n" + CONTENT_FLOOR,
@@ -136,68 +129,30 @@ def _system_blocks(cfg: Config) -> list[dict]:
             "REGISTER\n" + HARSHNESS[cfg.harshness],
         ]
     )
-    # One block, one breakpoint. This prefix is byte-stable across days, which
-    # is what makes it cacheable — keep every volatile value out of it.
-    return [{"type": "text", "text": text, "cache_control": {"type": "ephemeral"}}]
 
 
 def render(cfg: Config, packet: str) -> Verdict:
     try:
-        client = anthropic.Anthropic()
-    except Exception as exc:  # noqa: BLE001 - surfaced verbatim to the user
-        raise VerdictError(f"could not construct the Anthropic client: {exc}") from exc
+        reply = backends.complete(cfg, _system_text(cfg), packet, RESPONSE_SCHEMA)
+    except backends.BackendError as exc:
+        raise VerdictError(str(exc)) from exc
 
     try:
-        response = client.messages.create(
-            model=cfg.model,
-            max_tokens=cfg.max_tokens,
-            system=_system_blocks(cfg),
-            output_config={
-                "effort": cfg.effort,
-                "format": {"type": "json_schema", "schema": RESPONSE_SCHEMA},
-            },
-            messages=[{"role": "user", "content": packet}],
-        )
-    except anthropic.AuthenticationError as exc:
-        raise VerdictError(_NO_CREDS + f"\n  ({exc})") from exc
-    except anthropic.RateLimitError as exc:
-        raise VerdictError(f"rate limited — try again shortly. ({exc})") from exc
-    except anthropic.APIStatusError as exc:
-        raise VerdictError(f"API error {exc.status_code}: {exc.message}") from exc
-    except anthropic.APIConnectionError as exc:
-        raise VerdictError(f"could not reach the API: {exc}") from exc
-    except TypeError as exc:
-        # The SDK raises a bare TypeError, not AuthenticationError, when no
-        # credential can be resolved at all.
-        if "authentication method" in str(exc):
-            raise VerdictError(_NO_CREDS) from exc
-        raise VerdictError(f"bad request: {exc}") from exc
-    except Exception as exc:  # noqa: BLE001 - never traceback over a day's board
-        raise VerdictError(f"unexpected failure calling the model: {exc}") from exc
-
-    # Always before touching content: a refusal returns 200 with empty or
-    # partial content, and indexing content[0] would blow up here.
-    if response.stop_reason == "refusal":
-        detail = getattr(response.stop_details, "explanation", None) or "no explanation"
-        raise VerdictError(f"the model declined to answer ({detail})")
-
-    text = next((b.text for b in response.content if b.type == "text"), None)
-    if not text:
-        raise VerdictError(f"empty response (stop_reason={response.stop_reason})")
-
-    try:
-        data = json.loads(text)
+        data = json.loads(reply.text)
     except json.JSONDecodeError as exc:
         raise VerdictError(f"response was not valid JSON: {exc}") from exc
 
-    usage = response.usage
+    missing = {"headline", "verdict", "demand"} - data.keys()
+    if missing:
+        raise VerdictError(f"response missing {', '.join(sorted(missing))}")
+
     return Verdict(
         headline=data["headline"],
         verdict=data["verdict"],
         demand=data["demand"],
         baron=cfg.baron,
-        model=response.model,
-        input_tokens=usage.input_tokens,
-        output_tokens=usage.output_tokens,
-        cached_tokens=getattr(usage, "cache_read_input_tokens", 0) or 0,
+        model=f"{cfg.backend}:{reply.model}",
+        input_tokens=reply.input_tokens,
+        output_tokens=reply.output_tokens,
+        cached_tokens=reply.cached_tokens,
     )

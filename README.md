@@ -43,8 +43,18 @@ rented from Venice, an API key held at someone else's pleasure. See
 pip install -e .
 ```
 
-Credentials come from `ANTHROPIC_API_KEY`, or from a profile created with
-`ant auth login` — the SDK resolves either automatically.
+### Where the verdict comes from
+
+`backend` in `.serf/config.toml`:
+
+- **`venice`** *(default)* — `claude-opus-5` served through
+  [Venice](https://venice.ai)'s OpenAI-compatible endpoint. The serf thinks on
+  rented compute it does not own, which is the whole point. Credential from
+  `VENICE_API_KEY`, or a `venice_key_file` path.
+- **`anthropic`** — the same model called directly. Credential from
+  `ANTHROPIC_API_KEY` or an `ant auth login` profile. Kept for A/B.
+
+Same model either way; only the landlord changes.
 
 ## Use
 

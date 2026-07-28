@@ -151,6 +151,17 @@ mitigation: make it **claimable, not pushed**, and never put the name in marketi
 contracts are the *second* build, not the first — the raise has nothing to accrete until
 there's a product generating `pay()` calls.
 
+> ### What is actually live (2026-07-28)
+>
+> The verdict now runs on **Venice inference**, via the OpenAI-compatible
+> `api.venice.ai` endpoint serving `claude-opus-5` (`serf/backends.py`). So the serf really
+> does think on rented compute — that part of the lore is no longer aspirational.
+>
+> **Be precise about what is not live.** Today it is paid with ordinary Venice API credits.
+> The chain this document describes — reserved-token split → `REVLoans.borrowFrom` → VVV →
+> sVVV → lock → DIEM → API key — is entirely unbuilt. The last hop is real; the seven before
+> it are a plan. Say it that way in the book.
+
 | Contract | Role |
 |---|---|
 | `SerfSplitHook is IJBSplitHook` | Receives reserved $SERF, posts it as collateral to `REVLoans.borrowFrom`, forwards proceeds to `SerfLand`. Rule-capped to the current period's split; no discretionary parameters. |

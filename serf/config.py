@@ -24,9 +24,17 @@ harshness = 3               # 1-5. Earned escalation: start where you are.
 churn_window_days = 14      # code rewritten within N days counts as slag
 padding_max_lines = 2       # commits at or under this are checked for padding
 
+# Where the verdict is generated. "venice" runs on rented compute the serf
+# does not own, which is the point (MECHANISM.md). "anthropic" calls the
+# API directly and is kept for A/B.
+backend = "venice"
 model = "claude-opus-5"
 effort = "high"             # low | medium | high | xhigh | max
 max_tokens = 16000
+
+# Venice credential. Env VENICE_API_KEY wins if set; otherwise point this at
+# a file holding the key (plain text, or JSON with a "venice_key" field).
+# venice_key_file = "~/.config/venice/key.json"
 
 # Paths excluded from the metrics entirely (globs, matched on the path).
 exclude = ["**/vendor/**", "**/node_modules/**", "**/*.lock", "**/dist/**"]
@@ -43,9 +51,12 @@ class Config:
     harshness: int = 3
     churn_window_days: int = 14
     padding_max_lines: int = 2
+    backend: str = "venice"
     model: str = "claude-opus-5"
     effort: str = "high"
     max_tokens: int = 16000
+    venice_key_file: str = ""
+    venice_key_field: str = "venice_key"
     exclude: list[str] = field(default_factory=list)
 
     @property
@@ -84,9 +95,12 @@ def load(repo: Path) -> Config:
         harshness=harshness,
         churn_window_days=int(raw.get("churn_window_days", 14)),
         padding_max_lines=int(raw.get("padding_max_lines", 2)),
+        backend=str(raw.get("backend", "venice")).lower(),
         model=str(raw.get("model", "claude-opus-5")),
         effort=str(raw.get("effort", "high")),
         max_tokens=int(raw.get("max_tokens", 16000)),
+        venice_key_file=str(raw.get("venice_key_file", "")),
+        venice_key_field=str(raw.get("venice_key_field", "venice_key")),
         exclude=list(raw.get("exclude", [])),
     )
 
