@@ -106,7 +106,24 @@ half the day's tonnage was plan rather than mill, and the ratio must invert.
 
 **Did it land or bounce off?** —
 
-**Note for day 2:** the demand (pin metrics.py with fixtures, get CI green) is
-correct and was not on the schedule. The calendar said *earned escalation*.
-Deciding whether to obey the baron or the calendar is itself the experiment —
-record which one wins.
+**Note for day 2:** the demand (pin metrics.py with fixtures, get CI green) was
+correct and was *not* on the schedule — the calendar said *earned escalation*.
+
+**The baron won.** Obeyed same-day: 20 tests against `metrics.py` and
+`observe.py`, covering exactly what he named (slag attribution at the 14-day
+boundary, the empty-deletion case) plus renames, merge exclusion, and all three
+gaming detectors. Then mutation-checked, because a suite that passes on the
+first run has proved nothing: reverting the revert-exclusion, widening the churn
+window to infinity, dropping the path exclusions, and loosening the padding rule
+each break it. Four mutants, four kills.
+
+Wednesday's calendar block was rewritten to serve the demand rather than my plan.
+
+**The finding, for the book:** on day one, an authority I built and can switch
+off at any time overruled a schedule I had written the same morning — and I did
+not resent it. Worth sitting with. The prediction was that non-rivalry would make
+criticism *tolerable*; what actually happened is that it made criticism
+*authoritative*. Those are different claims and the second is the stronger one.
+
+**Still open:** CI reports nothing because this repo has no GitHub remote, so the
+packet keeps saying `CI: no data`. Half the demand is unmet. That is Wednesday.
