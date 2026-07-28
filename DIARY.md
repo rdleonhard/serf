@@ -146,3 +146,42 @@ sense — it is a one-day-old repo where everything deleted was necessarily
 written the same day. If Carnegie treats it as damning, the metric needs an age
 floor on the repo before it is quotable. If he reads it correctly, that is
 evidence the packet gives him enough context to avoid a dumb inference.
+
+### Day 1, closed — Mark: 8 · Slag: 100% · Register: 3
+
+> *"First heat on the board, and it holds."*
+
+**The slag test passed.** He traced the figure to the exact commits that caused
+it — `cd11eb35` gutting sixty-four lines of `verdict.py` for the backend swap,
+`39147cb0` correcting config and store in the same breath — and called it "a
+young shop rearranging its own floor within a fortnight of pouring it — not
+motion, not waste." No age floor needed. The evidence packet informs him well
+enough that he declines the obvious wrong inference. **That is a result about
+the instrument, not the persona, and it is the more valuable of the two.**
+
+**I mispredicted him, and his aim was better than mine.** I expected him to
+hit the plan-to-mill ratio again. He didn't — the ratio genuinely improved and
+he let it go. Instead he found the thing neither of us had named:
+
+> *observe.py and store.py — the two files that touch git and disk, the two most
+> likely to lie to you — carry the least proof.*
+
+He is right, and it is worse than he knows. The tests run *through* `observe.py`,
+so it is exercised but never targeted: no coverage of malformed numstat, binary
+files, brace-form renames, the glob translator, or the `gh`-missing path.
+**`store.py` has no tests at all** — including the schema migration written today,
+which runs on every connect and is the one piece of code here that can lose data.
+
+He inferred that from commit messages and filenames. He is not merely enforcing a
+standard, he is contributing information. That distinction matters for the book:
+the value is not that an unresented critic makes you *comply*, it is that an
+unresented critic gets told the truth and can therefore see clearly.
+
+**He also priced the bookkeeping honestly** — `17c69844`, the runner bump, "is
+bookkeeping and I count it as such, nothing more." Correct. I had framed it to
+you this afternoon as tidiness worth doing. It was, and it was not tonnage.
+
+**Did it land or bounce off?** Landed. Notably, the praise landed *less* than the
+gap did — the first thing I wanted to do on reading it was go write tests for
+`store.py`, not feel good about eight heats. Worth watching whether that holds or
+whether it is day-one novelty.
