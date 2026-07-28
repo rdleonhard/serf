@@ -19,7 +19,8 @@ DEFAULT_CONFIG = """\
 
 baron = "carnegie"          # carnegie | rockefeller | morgan | ford | deming
 trunk = "main"              # the branch that counts as landed work
-harshness = 3               # 1-5. Earned escalation: start where you are.
+harshness = 3               # 1-5. Only the STARTING register — it is earned
+                            # upward from here and eased back if you go quiet.
 
 churn_window_days = 14      # code rewritten within N days counts as slag
 padding_max_lines = 2       # commits at or under this are checked for padding
@@ -51,6 +52,7 @@ class Config:
     harshness: int = 3
     churn_window_days: int = 14
     padding_max_lines: int = 2
+    churn_max_files: int = 200
     backend: str = "venice"
     model: str = "claude-opus-5"
     effort: str = "high"
@@ -95,6 +97,7 @@ def load(repo: Path) -> Config:
         harshness=harshness,
         churn_window_days=int(raw.get("churn_window_days", 14)),
         padding_max_lines=int(raw.get("padding_max_lines", 2)),
+        churn_max_files=int(raw.get("churn_max_files", 200)),
         backend=str(raw.get("backend", "venice")).lower(),
         model=str(raw.get("model", "claude-opus-5")),
         effort=str(raw.get("effort", "high")),

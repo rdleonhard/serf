@@ -65,6 +65,7 @@ def board(
     baron_name: str,
     prior: list[tuple[str, int]],
     best_mark: int | None,
+    register=None,
 ) -> str:
     width = min(shutil.get_terminal_size((80, 24)).columns, 76)
     out: list[str] = []
@@ -88,18 +89,26 @@ def board(
     if best_mark is not None:
         facts.append(f"best {best_mark}")
     if stats.slag_pct is not None:
-        facts.append(f"slag {stats.slag_pct:.0f}%")
+        approx = "" if stats.slag_complete else "~"
+        facts.append(f"slag {approx}{stats.slag_pct:.0f}%")
     if stats.ci_failure_pct is not None:
         facts.append(f"ci fail {stats.ci_failure_pct:.0f}%")
     facts.append(f"+{stats.added}/-{stats.deleted}")
     if stats.disqualified:
         facts.append(f"{stats.disqualified} didn't count")
+    if register is not None:
+        arrow = "" if not register.changed else ("↑" if register.level > 1 else "")
+        facts.append(f"register {register.level}{arrow}")
     add("  " + dim("  ·  ".join(facts)))
 
     if prior:
         series = [m for _, m in reversed(prior)] + [stats.mark]
         add("  " + dim(sparkline(series) + "   (oldest → today)"))
     add("")
+
+    if register is not None and register.changed:
+        add("  " + bold(f"REGISTER → {register.level}") + dim(f"  ({register.reason})"))
+        add("")
 
     if stats.gaming.any:
         add("  " + bold("⚑ GAMING CHECK"))

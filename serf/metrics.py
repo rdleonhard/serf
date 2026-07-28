@@ -37,6 +37,7 @@ class DayStats:
     reverts: int
     fixes: int
     slag_pct: float | None  # % of deleted lines that were <window days old
+    slag_complete: bool     # False when the churn cap bit and slag is a sample
     ci_failure_pct: float | None
     gaming: Gaming
     commits: list[Commit]
@@ -86,6 +87,9 @@ def summarize(obs: Observation, cfg: Config) -> DayStats:
     churned = sum(c.churned_lines for c in commits)
     slag = (100.0 * churned / considered) if considered else None
 
+    files_total = sum(c.deletion_files_total for c in commits)
+    files_done = sum(c.deletion_files_attributed for c in commits)
+
     ci_rate = obs.ci_failure_rate
     return DayStats(
         mark=len(qualifying),
@@ -96,6 +100,7 @@ def summarize(obs: Observation, cfg: Config) -> DayStats:
         reverts=sum(1 for c in commits if c.is_revert),
         fixes=sum(1 for c in commits if c.is_fix),
         slag_pct=slag,
+        slag_complete=(files_done == files_total),
         ci_failure_pct=(ci_rate * 100.0) if ci_rate is not None else None,
         gaming=_detect_gaming(commits, cfg),
         commits=commits,
@@ -127,6 +132,13 @@ def evidence_packet(stats: DayStats, obs: Observation, cfg: Config,
             f"slag (rework): {stats.slag_pct:.0f}% of deleted lines were written "
             f"in the last {cfg.churn_window_days} days"
         )
+        if not stats.slag_complete:
+            add(
+                "  NOTE: that figure is a SAMPLE. Some commits changed more files "
+                f"than the churn cap ({cfg.churn_max_files}), so not every deleted "
+                "line was attributed. Treat the slag number as approximate and say "
+                "so if you rely on it."
+            )
     if stats.ci_failure_pct is None:
         add("CI: no data (gh unavailable or unauthenticated)")
     else:

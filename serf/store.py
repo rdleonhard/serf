@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS marks (
     mark       INTEGER NOT NULL,
     slag       REAL,
     baron      TEXT NOT NULL,
+    harshness  INTEGER,
     headline   TEXT,
     verdict    TEXT,
     demand     TEXT,
@@ -35,6 +36,10 @@ def connect(db_path: Path) -> Iterator[sqlite3.Connection]:
     conn.row_factory = sqlite3.Row
     try:
         conn.executescript(SCHEMA)
+        # Older databases predate the register column.
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(marks)")}
+        if "harshness" not in cols:
+            conn.execute("ALTER TABLE marks ADD COLUMN harshness INTEGER")
         yield conn
         conn.commit()
     finally:
@@ -47,6 +52,7 @@ def record(
     mark: int,
     slag: float | None,
     baron: str,
+    harshness: int,
     headline: str | None,
     verdict: str | None,
     demand: str | None,
@@ -55,17 +61,17 @@ def record(
     with connect(db_path) as conn:
         conn.execute(
             """
-            INSERT INTO marks (day, mark, slag, baron, headline, verdict, demand,
-                               packet, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO marks (day, mark, slag, baron, harshness, headline,
+                               verdict, demand, packet, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(day) DO UPDATE SET
                 mark=excluded.mark, slag=excluded.slag, baron=excluded.baron,
-                headline=excluded.headline, verdict=excluded.verdict,
-                demand=excluded.demand, packet=excluded.packet,
-                created_at=excluded.created_at
+                harshness=excluded.harshness, headline=excluded.headline,
+                verdict=excluded.verdict, demand=excluded.demand,
+                packet=excluded.packet, created_at=excluded.created_at
             """,
             (
-                day, mark, slag, baron, headline, verdict, demand, packet,
+                day, mark, slag, baron, harshness, headline, verdict, demand, packet,
                 datetime.now(timezone.utc).isoformat(timespec="seconds"),
             ),
         )

@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import subprocess
 import sys
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from . import config as cfgmod
-from . import metrics, observe, render, store, verdict as verdictmod
+from . import escalation, metrics, observe, render, store, verdict as verdictmod
 from .barons import WORKS
 
 
@@ -22,6 +23,20 @@ def _window(day: date) -> tuple[datetime, datetime]:
     start = datetime.combine(day, time.min)
     end = datetime.now() if day == date.today() else start + timedelta(days=1)
     return start, end
+
+
+def _register(cfg: cfgmod.Config, rows, day: date) -> escalation.Register:
+    """What register has actually been earned as of today."""
+    past = [
+        escalation.Day(
+            day=date.fromisoformat(r["day"]),
+            mark=r["mark"],
+            slag=r["slag"],
+            harshness=r["harshness"] or cfg.harshness,
+        )
+        for r in rows
+    ]
+    return escalation.effective(cfg.harshness, past, day)
 
 
 def _load(args: argparse.Namespace) -> cfgmod.Config:
@@ -90,14 +105,19 @@ def cmd_mark(args: argparse.Namespace) -> int:
         return 1
 
     stats = metrics.summarize(obs, cfg)
-    hist = [(r["day"], r["mark"]) for r in
-            store.history(cfg.db_path, 7, before=day.isoformat())]
+    rows = store.history(cfg.db_path, 7, before=day.isoformat())
+    hist = [(r["day"], r["mark"]) for r in rows]
     packet = metrics.evidence_packet(stats, obs, cfg, hist)
+
+    # The register is earned from history, not read from config. cfg.harshness
+    # is only the starting point.
+    reg = _register(cfg, rows, day)
+    run_cfg = dataclasses.replace(cfg, harshness=reg.level)
 
     v = None
     if not args.dry_run:
         try:
-            v = verdictmod.render(cfg, packet)
+            v = verdictmod.render(run_cfg, packet)
         except verdictmod.VerdictError as exc:
             print(f"serf: {exc}", file=sys.stderr)
             print("serf: showing the board without a verdict.\n", file=sys.stderr)
@@ -113,6 +133,7 @@ def cmd_mark(args: argparse.Namespace) -> int:
         baron_name=WORKS[cfg.baron].name,
         prior=hist,
         best_mark=best_mark,
+        register=reg,
     ))
 
     if not args.dry_run:
@@ -122,6 +143,7 @@ def cmd_mark(args: argparse.Namespace) -> int:
             mark=stats.mark,
             slag=stats.slag_pct,
             baron=cfg.baron,
+            harshness=reg.level,
             headline=v.headline if v else None,
             verdict=v.verdict if v else None,
             demand=v.demand if v else None,
@@ -166,10 +188,11 @@ def cmd_history(args: argparse.Namespace) -> int:
     if not rows:
         print("no marks recorded yet")
         return 0
-    print(f"{'day':<12} {'mark':>5} {'slag':>6}  headline")
+    print(f"{'day':<12} {'mark':>5} {'slag':>6} {'reg':>4}  headline")
     for r in reversed(rows):
         slag = f"{r['slag']:.0f}%" if r["slag"] is not None else "  —"
-        print(f"{r['day']:<12} {r['mark']:>5} {slag:>6}  {r['headline'] or ''}")
+        reg = str(r["harshness"]) if r["harshness"] else "—"
+        print(f"{r['day']:<12} {r['mark']:>5} {slag:>6} {reg:>4}  {r['headline'] or ''}")
     return 0
 
 

@@ -97,6 +97,8 @@ class Commit:
     whitespace_only: bool = False
     churned_lines: int = 0      # deleted lines that were themselves recent
     deleted_considered: int = 0  # deleted lines we were able to attribute
+    deletion_files_total: int = 0       # files with deletions in this commit
+    deletion_files_attributed: int = 0  # of those, how many we actually blamed
 
     @property
     def added(self) -> int:
@@ -229,11 +231,16 @@ def _annotate(cfg: Config, commit: Commit) -> None:
     commit.whitespace_only = bool(commit.files) and not ws
 
     window = timedelta(days=cfg.churn_window_days)
-    # Cap the work: pathological merges of hundreds of files aren't worth
-    # blaming line-by-line, and the ratio is stable over a sample.
-    for fc in commit.files[:40]:
-        if fc.deleted == 0:
-            continue
+
+    # Blaming every deleted line is the honest computation but it is O(files);
+    # a cap keeps a pathological commit from hanging the daily run. When the
+    # cap bites we record it, so slag can be reported as a sample rather than
+    # passed off as complete. A silently truncated number is worse than none.
+    with_deletions = [fc for fc in commit.files if fc.deleted > 0]
+    commit.deletion_files_total = len(with_deletions)
+
+    for fc in with_deletions[: cfg.churn_max_files]:
+        commit.deletion_files_attributed += 1
         for start, count in _deleted_ranges(cfg, commit.sha, fc.path):
             for authored in _blame_times(cfg, parent, fc.path, start, count):
                 commit.deleted_considered += 1

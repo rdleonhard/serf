@@ -243,3 +243,33 @@ def test_packet_is_explicit_when_nothing_landed(repo, cfg, today_window, days_ag
     packet = metrics.evidence_packet(stats, obs, cfg, [])
     assert stats.mark == 0
     assert "(none)" in packet
+
+
+# --------------------------------------------------------------------------
+# truncation must be visible, never silent
+
+def test_churn_cap_marks_slag_as_a_sample(repo, cfg, today_window, days_ago):
+    """When the cap bites, slag is approximate and must say so."""
+    cfg.churn_max_files = 1
+    repo.write("src/one.py", FOUR)
+    repo.write("src/two.py", FOUR)
+    repo.commit("baseline", when=days_ago(2))
+    repo.write("src/one.py", FOUR_REWRITTEN)
+    repo.write("src/two.py", FOUR_REWRITTEN)
+    repo.commit("rewrite both")
+
+    obs, stats = look(cfg, today_window)
+    assert stats.slag_complete is False
+    packet = metrics.evidence_packet(stats, obs, cfg, [])
+    assert "SAMPLE" in packet, "a truncated slag figure must be flagged to the model"
+
+
+def test_slag_is_complete_when_under_the_cap(repo, cfg, today_window, days_ago):
+    repo.write("src/one.py", FOUR)
+    repo.commit("baseline", when=days_ago(2))
+    repo.write("src/one.py", FOUR_REWRITTEN)
+    repo.commit("rewrite it")
+
+    obs, stats = look(cfg, today_window)
+    assert stats.slag_complete is True
+    assert "SAMPLE" not in metrics.evidence_packet(stats, obs, cfg, [])

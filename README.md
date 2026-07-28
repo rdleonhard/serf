@@ -102,9 +102,20 @@ Everything else — the verdicts, the history, the config — stays in `.serf/`.
 | **ford** | Standardization. The line, the build, repeatability. |
 | **deming** | The system, not the man — the standing objection to the other four. |
 
-`harshness` (1–5) sets the register. It is not a softness dial: an NCO who
-dresses down every private in the same voice isn't tough, he's lazy. Start
-where you actually are and raise it when it stops landing.
+### The register is earned
+
+`harshness` (1–5) is only where you *start*. It is not a softness dial — an NCO
+who dresses down every private in the same voice isn't tough, he's lazy — and it
+is not yours to set once and forget:
+
+- **Up one level** after three recorded days holding the same register with the
+  Mark not falling and slag not rising. You have to sit at a level for three
+  days before earning the next, so it cannot run away from you.
+- **Down one level** after two days without a mark. There is no point escalating
+  into an empty room.
+
+The applied register is recorded per day alongside the Mark, so the whole
+trajectory is auditable in `serf history`.
 
 ## Rules the persona cannot override
 
