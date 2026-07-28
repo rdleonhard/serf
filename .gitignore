@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# A bound seat's state: config, recorded verdicts, the evidence packets.
+# This is the dev's private coaching record and must never be committed —
+# the whole design rests on it not travelling. See PLAN.md §2.
+.serf/
