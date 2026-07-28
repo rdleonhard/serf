@@ -125,5 +125,24 @@ not resent it. Worth sitting with. The prediction was that non-rivalry would mak
 criticism *tolerable*; what actually happened is that it made criticism
 *authoritative*. Those are different claims and the second is the stronger one.
 
-**Still open:** CI reports nothing because this repo has no GitHub remote, so the
-packet keeps saying `CI: no data`. Half the demand is unmet. That is Wednesday.
+**Demand closed, same day.** Private repo at `rdleonhard/serf`, pushed, Actions
+green on 3.11/3.12/3.13, and the packet now reads `CI: 0% of recent runs on main
+did not pass` instead of `CI: no data`. Private rather than public because this
+file is committed, and a diary written for an audience is not a diary.
+
+**Also fixed, unprompted:** churn attribution was capped at 40 files per commit
+and reported the truncated result as a complete slag figure. Caught it while
+writing the tests that were supposed to prove the numbers trustworthy — which is
+the same sin he'd named that morning, sitting in the code the whole time. Now
+configurable, and when the cap bites the packet says the figure is a sample and
+the board renders `slag ~34%`.
+
+**Earned escalation shipped too**, a day early. The register is now derived from
+history rather than read from config: up one after three steady days with the
+Mark holding and slag not rising, down one after two days of silence.
+
+**Watch tomorrow:** slag reads 100% today. That is not rework in the meaningful
+sense — it is a one-day-old repo where everything deleted was necessarily
+written the same day. If Carnegie treats it as damning, the metric needs an age
+floor on the repo before it is quotable. If he reads it correctly, that is
+evidence the packet gives him enough context to avoid a dumb inference.
