@@ -38,6 +38,8 @@ max_tokens = 16000
 # venice_key_file = "~/.config/venice/key.json"
 
 # Paths excluded from the metrics entirely (globs, matched on the path).
+# Note: a bare "*" never crosses a "/", so "*.lock" matches Cargo.lock but
+# NOT sub/Cargo.lock. Lead with "**/" when you mean "at any depth".
 exclude = ["**/vendor/**", "**/node_modules/**", "**/*.lock", "**/dist/**"]
 """
 
