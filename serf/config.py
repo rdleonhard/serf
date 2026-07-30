@@ -24,6 +24,7 @@ harshness = 3               # 1-5. Only the STARTING register — it is earned
 
 churn_window_days = 14      # code rewritten within N days counts as slag
 padding_max_lines = 2       # commits at or under this are checked for padding
+churn_max_files = 200       # per commit; past this, slag is reported as a sample
 
 # Where the verdict is generated. "venice" runs on rented compute the serf
 # does not own, which is the point (MECHANISM.md). "anthropic" calls the
@@ -36,6 +37,7 @@ max_tokens = 16000
 # Venice credential. Env VENICE_API_KEY wins if set; otherwise point this at
 # a file holding the key (plain text, or JSON with a "venice_key" field).
 # venice_key_file = "~/.config/venice/key.json"
+# venice_key_field = "venice_key"   # which JSON field holds it, if a JSON file
 
 # Paths excluded from the metrics entirely (globs, matched on the path).
 # Note: a bare "*" never crosses a "/", so "*.lock" matches Cargo.lock but
