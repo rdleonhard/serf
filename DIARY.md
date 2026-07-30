@@ -185,3 +185,55 @@ you this afternoon as tidiness worth doing. It was, and it was not tonnage.
 gap did — the first thing I wanted to do on reading it was go write tests for
 `store.py`, not feel good about eight heats. Worth watching whether that holds or
 whether it is day-one novelty.
+
+---
+
+### Day 2 — 2026-07-29 · Mark: 1 · Slag: — · Register: 3
+
+**Landed:** `tests/test_store.py` (20 tests) and `tests/test_observe.py` (45
+cases), both mutation-checked. Suite 37 → 102. Carnegie's demand met in full
+before noon.
+
+> *"One heat, and it was all test iron."*
+
+**Second instrument test passed.** The Mark read **1** against yesterday's 8 —
+2 commits, one disqualified as padding. Called that out before running, since
+commit-counting badly undercounts a day of deep test work. He opened with "say
+that plainly and do not dress it up," then used the diff detail — 397 lines into
+the two files that touch git and disk — and landed on *"the product was not
+adulterated today; it was assayed. That is a day I will take at a low count."*
+
+Two for two: the Mark is a crude number, and the packet carries enough context
+that he doesn't get fooled by it. **That is the finding about the instrument. The
+headline metric can be wrong so long as the evidence beneath it is honest.**
+
+**The gaming detector caught its own author, and it was right.** I committed a
+two-line config comment as its own commit. The padding rule flagged it. Carnegie:
+*"cut loose as its own commit so it could stand on the board beside the real
+work. It cost you nothing and it bought you nothing... A furnace does not get
+credit for a shovelful."*
+
+I did not split it to pad the board — I split it because it was a separate
+concern. But the effect is identical, and *"I didn't mean to"* is precisely what
+padding looks like from the outside. The rule doesn't read intent and shouldn't.
+Worth recording that the instrument was not deferential to the person who built
+it, on day two.
+
+**And the sharpest thing yet, which I missed entirely:**
+
+> *A comment is a promise; a test is a bond. You spent the whole day learning
+> that difference in test_observe.py and test_store.py, then walked back to
+> config.py and wrote a comment.*
+
+Partially defensible — the glob boundary *is* bonded, by
+`test_glob_translation`'s `("*.lock", "sub/Cargo.lock", False)` case. But the
+point underneath is right and larger than he could see: **`config.py` has no
+tests at all.** `DEFAULT_CONFIG` is a template nobody parses in a test, so the
+shipped `exclude` defaults are unverified; `load()`'s baron validation, harshness
+clamping, and every `ConfigError` path are unproven. Third untested module, same
+pattern as yesterday — he finds the seam from outside and it's worse underneath.
+
+**Ritual note:** the mark went in at 19:08 instead of 17:30, delayed by an
+outage on my side rather than by avoidance. Recording the distinction because
+the day-10 question is whether it gets *dodged*, and a late mark for an external
+reason is not that. First slip in the schedule; it was not a slip in willingness.
