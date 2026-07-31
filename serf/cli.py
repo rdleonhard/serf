@@ -10,7 +10,8 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from . import config as cfgmod
-from . import escalation, metrics, observe, render, store, verdict as verdictmod
+from . import escalation, metrics, observe, render, report, store
+from . import verdict as verdictmod
 from .barons import WORKS
 
 
@@ -33,6 +34,7 @@ def _register(cfg: cfgmod.Config, rows, day: date) -> escalation.Register:
             mark=r["mark"],
             slag=r["slag"],
             harshness=r["harshness"] or cfg.harshness,
+            recorded_on=report.recorded_on(r),
         )
         for r in rows
     ]
@@ -182,6 +184,26 @@ def cmd_board(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_journal(args: argparse.Namespace) -> int:
+    cfg = _load(args)
+    rows = store.history(cfg.db_path, limit=10_000)
+    text = report.journal(rows, cfg.repo.name, include_packets=args.packets)
+    if args.out:
+        out = Path(args.out)
+        out.write_text(text)
+        print(f"{len(rows)} marks written to {out}")
+    else:
+        print(text)
+    return 0
+
+
+def cmd_week(args: argparse.Namespace) -> int:
+    cfg = _load(args)
+    rows = store.history(cfg.db_path, limit=10_000)
+    print(report.week(rows, date.today(), days=args.days))
+    return 0
+
+
 def cmd_history(args: argparse.Namespace) -> int:
     cfg = _load(args)
     rows = store.history(cfg.db_path, args.limit)
@@ -217,6 +239,16 @@ def main(argv: list[str] | None = None) -> int:
     h = sub.add_parser("history", help="list recorded marks")
     h.add_argument("-n", "--limit", type=int, default=14)
     h.set_defaults(fn=cmd_history)
+
+    j = sub.add_parser("journal", help="export every mark as markdown, for the book")
+    j.add_argument("-o", "--out", help="write to a file instead of stdout")
+    j.add_argument("--packets", action="store_true",
+                   help="include the full evidence packet for each day")
+    j.set_defaults(fn=cmd_journal)
+
+    w = sub.add_parser("week", help="the week's reckoning: trend, best day, what slipped")
+    w.add_argument("--days", type=int, default=7)
+    w.set_defaults(fn=cmd_week)
 
     k = sub.add_parser("packet", help="print the evidence packet and exit")
     k.add_argument("--date", help="YYYY-MM-DD (default: today)")

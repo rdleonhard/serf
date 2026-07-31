@@ -380,6 +380,153 @@ Two constraints, both already implied by decisions made:
   nothing about the person, ever — the publishable surface is exactly "a baron being
   merciless about code," which is the shareable part anyway.
 
+## 7b. The plugin: bosses for hire, paid in $SERF
+
+*Locked 2026-07-31. This is §6's oracle becoming the primary product rather than
+the wedge.*
+
+A boss is hired to watch a repository and report to **token holders** on a
+cadence. It runs on DIEM from the revnet treasury. Hiring one requires $SERF, so
+demand for bosses is demand for the token, and the compute is bought with the
+thing the token already owns.
+
+**Why not run your own agent?** Objectivity, for the same reason you don't audit
+yourself. But state the mechanism, not the vibe: an agent you configure is an
+agent you can tune to flatter you, and a verdict the subject controls is worth
+nothing to a third party. The value is not that our boss is smarter. It is that
+**you cannot fire it mid-engagement and you cannot edit its evidence packet.**
+
+### The separation that must not collapse
+
+Reporting to token holders is *publication to an anonymous, permissionless
+audience*. Everything in §2 and §2a was built for a two-party relationship where
+the dev sees the report first. That does not survive contact with an open holder
+set — nobody can meaningfully consent to "whoever holds the token may read about
+my work."
+
+The resolution is that these are **two products sharing one codebase**, and the
+boundary is the subject:
+
+| | Coach (§2) | Boss-for-hire (this section) |
+|---|---|---|
+| Subject | a **person** | a **repository** |
+| Audience | that person, privately | token holders, publicly |
+| May say | anything about the work | anything about the project |
+| May never say | — | anything about a named individual |
+
+A repository-scoped verdict published to holders is legitimate: *is this project
+progressing, is the test floor holding, is the rework rate climbing.* A
+person-scoped verdict published to holders is a career attack with a smart
+contract attached. **No coach material ever reaches a holder feed.** Not
+summarised, not aggregated, not "anonymised."
+
+Consequence: published verdicts make the §4 content floor load-bearing in a new
+way, and open a defamation surface a private note never had. Get counsel on the
+published-verdict template before the first paying customer, not after.
+
+### Getting paid without becoming Arthur Andersen
+
+The auditor analogy is right and it cuts both ways. **An auditor paid in the
+audited party's equity is the exact arrangement that produced Enron and
+Sarbanes-Oxley.** Taking a share of a client project's split means our income
+depends on the verdict we hand them, which is the conflict we are selling the
+absence of.
+
+Two further exposures on the same instrument:
+
+1. **Worthless-treasury tokens.** Revnet v6 permits custom project tokens, so a
+   client's revnet can be denominated in an asset with no real backing. Their
+   split pays us in a token redeemable for nothing, and we have burned real DIEM
+   for it — by accident or deliberately.
+2. **Split reassignment** — more likely than sabotage, because it needs no
+   premeditation. The operator "can reassign that role," and `lockedUntil` binds
+   only within a split table: a successor ruleset with a different `rulesetId`
+   can still change future payouts (MECHANISM §4). A client can be judged, take
+   the verdict badly, and reassign the split before we are ever paid.
+
+**All three have one answer: the seat is prepaid, and the work does not start
+until its DIEM is funded.** That is the §7a seat primitive applied unchanged —
+a seat sits idle until funded, so compute can never be spent on a payer who
+turns out to be worthless or absent. You cannot waste compute you were paid for
+in advance.
+
+Take the split, but take it as **upside on a prepaid floor, never as the fee.**
+The floor is priced to cover the seat's DIEM burn plus margin and is
+non-refundable and non-contingent. Then a garbage treasury or a yanked split
+costs us a lottery ticket we did not pay for, and — the part that matters — our
+income does not move with the verdict.
+
+**Never hold the client's token.** Even converting it promptly to buy back $SERF
+means holding it through the sale, which is exposure to the price of a thing we
+are simultaneously judging. Require the floor in a neutral asset or in $SERF
+bought on the open market. That gets the buyback you want without the position.
+
+### Holder governance: what may be voted on, and what may not
+
+Revnets having no governance was listed as an asset — *there is no DAO to lobby
+SERF into being nicer.* Any holder vote reopens that channel, so the line has to
+be drawn once and drawn hard:
+
+> **Holders may choose the boss and dispute the evidence. Nobody may adjust the
+> severity.**
+
+**Choosing is legitimate; re-choosing is not.** Audit committees select their
+auditor — that is normal and healthy. The corruption is being able to *change*
+auditors when a finding lands badly. So the baron is voted at seat creation and
+**locked for the engagement term.** No mid-term swaps, no "we'd like Deming
+this quarter" after a bad month.
+
+**Recusal is mechanical, not honour-system.** The seat knows its bound repo and
+its funder. Holdings controlled by the judged party are excluded from votes
+concerning their own seat. Without this, a dev with enough tokens simply buys a
+softer boss, which is worse than being paid in their equity — that is a one-time
+payment, this is standing control over the judge.
+
+**Feedback splits cleanly in two, and only one half is admissible:**
+
+| Kind | Example | Handling |
+|---|---|---|
+| **Evidence dispute** | "slag read 40% but the churn window was misconfigured" | **Welcome it loudly.** Route to the maintainers, fix the instrument, publish the correction. |
+| **Severity complaint** | "the boss was too harsh / unfair / discouraging" | Log it, count it, never act on it. It is the sound the mechanism makes when it works. |
+
+This maps exactly onto what already exists: the **evidence packet is checkable
+and must be corrected when wrong; the verdict is not negotiable.** A protocol
+that cannot tell these apart will be lobbied into uselessness inside a quarter.
+
+**Ratings: publish the record, not the approval.** A star rating awarded by
+clients is a race to leniency with a leaderboard attached — if the judged party
+picks the judge by score, the top-rated boss is necessarily the softest one that
+still looks credible. Publish instead what cannot be gamed by being pleasant:
+
+- how many factual claims this baron made that were **successfully disputed**
+- its median evidence-packet size (is it judging on enough)
+- what work type it is *for* — Ford for CI and process, Morgan for scope
+
+An accuracy record rewards being right. An approval score rewards being liked by
+the people you judge.
+
+**On "a human reads the feedback and adjusts":** honest for v0 and unworkable
+past it. It does not scale past a handful of seats, it makes that human the
+lobbying target instead of the agent, and it rests the protocol's independence
+claim on one person's integrity — which is precisely what a revnet exists to
+remove. Fine as a stopgap; say plainly that it is one.
+
+### Due diligence before accepting any client split
+
+Mechanical, on-chain, and worth automating early:
+
+- **Terminal accounting contexts** — which tokens does their treasury actually
+  accept? Anything outside a short allowlist is an automatic decline.
+- **A live price feed for the pair.** `JBTerminalStore` reads `JBPrices` on every
+  pay and cash-out when the accepted token's currency differs from `baseCurrency`
+  (MECHANISM §1). **No live feed means no reliable valuation — decline.**
+- **Actual surplus**, not nominal supply, and the current `cashOutTaxRate` — what
+  would we really recover on exit.
+- **Suckers** — surplus may sit on another chain; `scopeCashOutsToLocalBalances`
+  changes what is reachable.
+- **Split `lockedUntil` and the operator address** — assume it can be revoked and
+  price accordingly.
+
 ## 8. First 90 days
 
 **Weeks 1–3 — v0, local, Carnegie only.**

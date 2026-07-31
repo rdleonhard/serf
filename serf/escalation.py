@@ -36,6 +36,17 @@ class Day:
     mark: int
     slag: float | None
     harshness: int
+    recorded_on: date | None = None   # when the mark was actually taken
+
+    @property
+    def on_time(self) -> bool:
+        """False when the mark was backfilled after the day it judges.
+
+        This is what stops `serf mark --date` being a retroactive register
+        repair tool. Backfilling records the work honestly; it does not
+        un-miss the ritual, and the register tracks the ritual.
+        """
+        return self.recorded_on is None or self.recorded_on <= self.day
 
 
 def _non_decreasing_marks(days: list[Day]) -> bool:
@@ -65,7 +76,11 @@ def effective(base: int, history: list[Day], today: date) -> Register:
         return Register(base, "first day on the board", changed=False)
 
     current = history[0].harshness or base
-    gap = (today - history[0].day).days
+
+    # Measure absence from the last day that was marked ON that day. A day
+    # backfilled later is work recorded, not a day shown up for.
+    on_time = [d.day for d in history if d.on_time]
+    gap = (today - max(on_time)).days if on_time else AWAY_DAYS
 
     # He stopped showing up. Ease off rather than escalate into an empty room.
     if gap >= AWAY_DAYS and current > MIN_LEVEL:
@@ -83,6 +98,7 @@ def effective(base: int, history: list[Day], today: date) -> Register:
     steady = len({d.harshness for d in recent}) == 1
     if (
         steady
+        and all(d.on_time for d in recent)
         and current < MAX_LEVEL
         and _non_decreasing_marks(recent)
         and _slag_not_worse(recent)

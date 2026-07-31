@@ -99,3 +99,40 @@ def test_two_days_of_history_is_not_enough():
 @pytest.mark.parametrize("base,expected", [(0, 1), (9, 5), (-4, 1)])
 def test_base_is_clamped_into_range(base, expected):
     assert effective(base, [], TODAY).level == expected
+
+
+# --------------------------------------------------------------------------
+# backfilling records the work; it does not un-miss the ritual
+
+def late(days_ago: int, mark: int, slag, harshness: int, recorded_days_ago: int):
+    return Day(TODAY - timedelta(days=days_ago), mark, slag, harshness,
+               recorded_on=TODAY - timedelta(days=recorded_days_ago))
+
+
+def test_backfilling_does_not_repair_the_gap():
+    """`serf mark --date` must not be a retroactive register repair tool."""
+    # Yesterday's mark exists, but was only taken today.
+    r = effective(3, [late(1, 6, 10.0, 4, recorded_days_ago=0)], TODAY)
+    assert r.level == 3, "the day was backfilled, so the register still eases"
+    assert r.changed is True
+
+
+def test_an_on_time_mark_yesterday_holds_the_register():
+    r = effective(3, [late(1, 6, 10.0, 4, recorded_days_ago=1)], TODAY)
+    assert r.level == 4
+    assert r.changed is False
+
+
+def test_a_backfilled_day_blocks_escalation():
+    """Three good days do not earn a level if one of them was not lived."""
+    history = [late(1, 8, 10.0, 3, recorded_days_ago=1),
+               late(2, 7, 10.0, 3, recorded_days_ago=0),   # backfilled
+               late(3, 6, 10.0, 3, recorded_days_ago=3)]
+    assert effective(3, history, TODAY).level == 3
+
+
+def test_three_on_time_days_still_earn_it():
+    history = [late(1, 8, 10.0, 3, recorded_days_ago=1),
+               late(2, 7, 10.0, 3, recorded_days_ago=2),
+               late(3, 6, 10.0, 3, recorded_days_ago=3)]
+    assert effective(3, history, TODAY).level == 4
