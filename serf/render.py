@@ -97,7 +97,14 @@ def board(
     if stats.disqualified:
         facts.append(f"{stats.disqualified} didn't count")
     if register is not None:
-        arrow = "" if not register.changed else ("↑" if register.level > 1 else "")
+        # Compare against where it came from. Guessing from the level alone
+        # rendered every change as a promotion, including demotions.
+        if register.level > register.previous:
+            arrow = "↑"
+        elif register.level < register.previous:
+            arrow = "↓"
+        else:
+            arrow = ""
         facts.append(f"register {register.level}{arrow}")
     add("  " + dim("  ·  ".join(facts)))
 

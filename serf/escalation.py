@@ -26,6 +26,7 @@ class Register:
     level: int
     reason: str
     changed: bool
+    previous: int = 0   # so a reader can tell which way it moved
 
 
 @dataclass(frozen=True)
@@ -73,7 +74,7 @@ def effective(base: int, history: list[Day], today: date) -> Register:
     """
     base = max(MIN_LEVEL, min(MAX_LEVEL, base))
     if not history:
-        return Register(base, "first day on the board", changed=False)
+        return Register(base, "first day on the board", False, previous=base)
 
     current = history[0].harshness or base
 
@@ -88,11 +89,13 @@ def effective(base: int, history: list[Day], today: date) -> Register:
             current - 1,
             f"{gap} days since the last mark — easing the register back",
             changed=True,
+            previous=current,
         )
 
     recent = history[:HOLD_DAYS]
     if len(recent) < HOLD_DAYS:
-        return Register(current, "not enough history to move the register", False)
+        return Register(current, "not enough history to move the register", False,
+                        previous=current)
 
     # You must sit at a level for three recorded days before earning the next.
     steady = len({d.harshness for d in recent}) == 1
@@ -107,6 +110,7 @@ def effective(base: int, history: list[Day], today: date) -> Register:
             current + 1,
             f"{HOLD_DAYS} days holding or rising with rework in hand — earned it",
             changed=True,
+            previous=current,
         )
 
-    return Register(current, "holding", changed=False)
+    return Register(current, "holding", False, previous=current)
