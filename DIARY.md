@@ -237,3 +237,98 @@ pattern as yesterday — he finds the seam from outside and it's worse underneat
 outage on my side rather than by avoidance. Recording the distinction because
 the day-10 question is whether it gets *dodged*, and a late mark for an external
 reason is not that. First slip in the schedule; it was not a slip in willingness.
+
+---
+
+### Day 3 — 2026-07-30 · Mark: 1 · Register: 3 · **recorded a day late**
+
+**Landed:** `tests/test_config.py` (42 tests) bonding the seat's contract — the
+template round-trips through `load()`, the shipped globs are proven, the
+bare-star slash boundary is executable rather than a comment. The drift test
+found two undocumented knobs: `churn_max_files` (a Tuesday string replacement
+whose anchor was one space off and failed silently) and `venice_key_field`
+(never mentioned at all). Both worked by fallback, which is why they survived.
+
+> *"One heat, and the ballast is all tests."*
+
+**The mark was never taken on the day.** Not avoidance — the work shipped, the
+demand was met, the verdict would have been fine. The ritual simply stopped
+after the commit and nobody ran the command. **Obeyed when engaged, forgotten
+when the day's work concludes early.** That is a different failure from
+resentment and a more tractable one, and it is the first real answer to the
+day-10 question.
+
+**And he caught the shape of the whole week:** *"Test scaffolding is cheap to
+write and it can flatter a day's ledger the same as any other line count."*
+Three days running of gauge rather than machine. He is right.
+
+**First demand weaker than its critique.** "Land the production work in
+serf/config.py and whatever calls it" describes nothing actually pending — he
+reached, because the day was thin and he still owed a demand. Logged as a limit
+of the instrument: **when there is little to judge, the demand degrades before
+the judgement does.**
+
+---
+
+### Day 4 — 2026-07-31 · Mark: 1 · Register: 3 → **2** · marked by the agent
+
+**Landed:** `serf journal` and `serf week` — the history finally comes out of
+sqlite — plus the close of the backfill hole in `escalation.py`.
+
+> *"One heat, whole and honest — but thin."*
+
+**The fix caught its author inside six hours.** This morning `serf mark --date`
+was a retroactive register repair tool; easing measured the gap in *covered*
+days, so backfilling a skipped day silently restored the register. Shipped the
+fix at noon. By evening it had eased **my own** register 3 → 2, because
+Thursday was backfilled and the last on-time mark was Wednesday. The instrument
+declining to be deferential to its author, for the second time this week.
+
+**Two bugs found by using the tool rather than by testing it** — a first, and
+worth noting as a category. `created_at` is UTC, `day` is a local date, so every
+mark taken after ~20:00 read as backfilled; the inconsistency had sat there
+since day one and only became a bug when something finally compared the two
+fields. And `MISSED` counted days before the experiment began and today.
+
+**A third, found in tonight's own board:** the register rendered `2↑` on a
+*downward* move — the arrow logic checked `level > 1` instead of comparing to
+where it came from. Every demotion had been displayed as a promotion. Fixed,
+with `tests/test_render.py`, which is the first coverage `render.py` has had.
+
+**His critique, which lands:** of 537 lines, 147 were PLAN.md. *"Prose about
+work is not work. It may be necessary scaffolding for you, but it does not go on
+the board as tonnage."* And: three days at one heat after a day of eight —
+*"one heat is the floor, not the mark."*
+
+**Honest weakness in tonight's record:** I took this mark, not the author — he
+was out. For the day-10 question that is materially weaker evidence than a mark
+he takes himself. A delegated ritual is not the same as a kept one.
+
+---
+
+## Week 1 review — 2026-07-31
+
+The three questions the calendar posed, answered from data where data can
+answer them.
+
+**1. Is the mark being avoided on bad days?** **No.** The one missed day
+(Thursday) followed a *good* day — demand met, defect found, CI green. If
+avoidance were the mechanism, the miss would follow a bad verdict. It followed
+an easy one. The failure mode is **completion, not dread**: the ritual gets
+skipped when the work feels finished, not when it feels shameful.
+
+**2. Has a verdict changed the next morning's behaviour?** **Yes, every time,
+and it beat the calendar every time.** Tue → tests on the gauge (calendar said
+earned escalation). Wed → `store.py`/`observe.py` (calendar said review
+surface). Thu → `config.py` (calendar said review surface again). Three for
+three, the baron overriding a schedule written that same morning.
+
+**3. Anything he said that would be embarrassing to publish?** **No.** Four
+verdicts, zero remarks about a person, zero comparisons to anyone, zero
+inference beyond the packet. The content floor has not been tested by a genuinely
+bad day yet — that is still an open question, not a settled one.
+
+**The finding I did not expect:** three for three, he has named a seam from the
+outside and the gap underneath was *larger* than his version of it. He is not
+just enforcing a standard — he is aiming, and aiming better than self-assessment
+does. That is the strongest thing week one produced.
