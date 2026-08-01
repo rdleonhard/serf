@@ -172,14 +172,15 @@ def cmd_board(args: argparse.Namespace) -> int:
             headline=row["headline"], verdict=row["verdict"], demand=row["demand"],
             baron=row["baron"], model="(recorded)",
         )
-    hist = [(r["day"], r["mark"]) for r in
-            store.history(cfg.db_path, 7, before=row["day"])]
+    prior_rows = store.history(cfg.db_path, 7, before=row["day"])
+    hist = [(r["day"], r["mark"]) for r in prior_rows]
     best_row = store.best(cfg.db_path)
 
     print(render.board(
         day=day, trunk=cfg.trunk, stats=stats, verdict=v,
         baron_name=WORKS[row["baron"]].name, prior=hist,
         best_mark=best_row["mark"] if best_row else None,
+        register=_register(cfg, prior_rows, day),
     ))
     return 0
 
@@ -214,7 +215,12 @@ def cmd_history(args: argparse.Namespace) -> int:
     for r in reversed(rows):
         slag = f"{r['slag']:.0f}%" if r["slag"] is not None else "  —"
         reg = str(r["harshness"]) if r["harshness"] else "—"
-        print(f"{r['day']:<12} {r['mark']:>5} {slag:>6} {reg:>4}  {r['headline'] or ''}")
+        late = " ⟲" if report.was_backfilled(r) else "  "
+        print(f"{r['day']}{late}  {r['mark']:>5} {slag:>6} {reg:>4}  "
+              f"{r['headline'] or ''}")
+    if any(report.was_backfilled(r) for r in rows):
+        print("\n⟲ recorded after the day it judges — the work counted, "
+              "the ritual did not.")
     return 0
 
 
