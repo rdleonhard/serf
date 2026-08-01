@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import json
 import subprocess
 import sys
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from . import config as cfgmod
-from . import escalation, metrics, observe, render, report, store
+from . import escalation, metrics, observe, render, report, slate, store
 from . import verdict as verdictmod
 from .barons import WORKS
 
@@ -151,6 +152,14 @@ def cmd_mark(args: argparse.Namespace) -> int:
             demand=v.demand if v else None,
             packet=packet,
         )
+        # Put it on the glass if a slate is configured. Best-effort by design:
+        # an unplugged board must never fail a mark run.
+        ip = slate.resolve_ip(getattr(args, "ip", None))
+        if ip and not getattr(args, "no_slate", False):
+            row = store.latest(cfg.db_path)
+            ok, msg = slate.push(ip, _slate_payload(cfg, row))
+            print(f"slate {ip}: {'on the glass' if ok else 'unreachable — ' + msg}",
+                  file=sys.stderr)
     return 0
 
 
@@ -182,6 +191,71 @@ def cmd_board(args: argparse.Namespace) -> int:
         best_mark=best_row["mark"] if best_row else None,
         register=_register(cfg, prior_rows, day),
     ))
+    return 0
+
+
+def _slate_payload(cfg, row):
+    """Rebuild the payload for a recorded row.
+
+    The store keeps the mark, the slag and the verdict; the +/- lines,
+    disqualified count and gaming check are not stored, so they are recomputed
+    from git the way cmd_board does.
+
+    But the MARK ITSELF is taken from the record, not the recompute. A day's
+    window keeps accepting commits after the verdict is written, so recomputing
+    it drifts: the board would show 3 next to a verdict that says "one heat,
+    whole and honest". The number on the glass has to be the number the baron
+    actually judged.
+    """
+    day = date.fromisoformat(row["day"])
+    since, until = _window(day)
+    stats = metrics.summarize(observe.collect(cfg, since, until), cfg)
+    stats = dataclasses.replace(stats, mark=row["mark"], slag_pct=row["slag"])
+
+    v = None
+    if row["verdict"]:
+        v = verdictmod.Verdict(
+            headline=row["headline"], verdict=row["verdict"], demand=row["demand"],
+            baron=row["baron"], model="(recorded)",
+        )
+    prior_rows = store.history(cfg.db_path, 7, before=row["day"])
+    best_row = store.best(cfg.db_path)
+    return slate.payload(
+        day=day,
+        trunk=cfg.trunk,
+        stats=stats,
+        verdict=v,
+        baron=row["baron"],
+        prior=[(r["day"], r["mark"]) for r in prior_rows],
+        best_mark=best_row["mark"] if best_row else None,
+        register=_register(cfg, prior_rows, day),
+    )
+
+
+def cmd_slate(args: argparse.Namespace) -> int:
+    cfg = _load(args)
+    row = store.latest(cfg.db_path)
+    if row is None:
+        _die("nothing on the board yet — run `serf mark`")
+        return 1
+
+    body = _slate_payload(cfg, row)
+
+    if args.dry_run:
+        print(json.dumps(body, indent=2))
+        return 0
+
+    ip = slate.resolve_ip(args.ip)
+    if not ip:
+        _die("no slate address — pass --ip or write one to ~/.slate_ip")
+        return 1
+
+    ok, msg = slate.push(ip, body)
+    if not ok:
+        print(f"serf: slate at {ip} did not answer: {msg}", file=sys.stderr)
+        return 1
+    print(f"slate {ip}: mark {body['mark']} for {body['day']}"
+          + ("  [FLAGGED]" if body["flag"] else ""))
     return 0
 
 
@@ -237,6 +311,9 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--date", help="YYYY-MM-DD (default: today)")
     m.add_argument("--dry-run", action="store_true",
                    help="compute and render, but make no model call and record nothing")
+    m.add_argument("--ip", help="slate address (default: ~/.slate_ip)")
+    m.add_argument("--no-slate", action="store_true",
+                   help="do not push the result to the slate")
     m.set_defaults(fn=cmd_mark)
 
     b = sub.add_parser("board", help="re-render the last recorded mark")
@@ -255,6 +332,12 @@ def main(argv: list[str] | None = None) -> int:
     w = sub.add_parser("week", help="the week's reckoning: trend, best day, what slipped")
     w.add_argument("--days", type=int, default=7)
     w.set_defaults(fn=cmd_week)
+
+    sl = sub.add_parser("slate", help="push the last recorded mark to the slate")
+    sl.add_argument("--ip", help="board address (default: ~/.slate_ip)")
+    sl.add_argument("--dry-run", action="store_true",
+                    help="print the payload; send nothing")
+    sl.set_defaults(fn=cmd_slate)
 
     k = sub.add_parser("packet", help="print the evidence packet and exit")
     k.add_argument("--date", help="YYYY-MM-DD (default: today)")
