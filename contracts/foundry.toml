@@ -1,0 +1,9 @@
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+solc = "0.8.24"
+evm_version = "cancun"
+
+[rpc_endpoints]
+base = "https://mainnet.base.org"

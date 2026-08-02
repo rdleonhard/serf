@@ -6,6 +6,10 @@ venv/
 dist/
 build/
 
+# Foundry build output. Regenerate with `forge build` inside contracts/.
+/contracts/out/
+/contracts/cache/
+
 # A bound seat's state: config, recorded verdicts, the evidence packets.
 # This is the dev's private coaching record and must never be committed —
 # the whole design rests on it not travelling. See PLAN.md §2.
