@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SERF Launch Console</title>
+<title>FERS Launch Console</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <style>
   :root {
@@ -65,7 +65,7 @@
 </style>
 </head>
 <body>
-<h1>SERF Launch Console</h1>
+<h1>FERS Launch Console</h1>
 <div class="sub">LaunchPool / LaunchFactory operator panel &mdash; Base (8453) or local anvil fork (31337)</div>
 
 <div class="warnbox">
@@ -285,9 +285,9 @@ async function connect() {
   $("net").className = "pill " + (id === 8453 || id === 31337 ? "ok" : "warn");
   if (id !== 8453 && id !== 31337) log(`Connected to unexpected chain ${id} — the Venice addresses only exist on Base (or a fork of it).`, "err");
   else log(`Connected ${short(me)} on chain ${id}.`, "ok");
-  const saved = localStorage.getItem("serf.pool");
+  const saved = localStorage.getItem("fers.pool");
   if (saved && !$("poolAddr").value) $("poolAddr").value = saved;
-  const savedF = localStorage.getItem("serf.factory");
+  const savedF = localStorage.getItem("fers.factory");
   if (savedF && !$("factoryAddr").value) $("factoryAddr").value = savedF;
 }
 
@@ -310,7 +310,7 @@ async function loadPool() {
     const tokenAddr = await pool.token();
     token = new ethers.Contract(tokenAddr, ERC20_ABI, signer ?? provider);
     tokenSym = await token.symbol();
-    localStorage.setItem("serf.pool", addr);
+    localStorage.setItem("fers.pool", addr);
     log(`Loaded pool ${short(addr)} — token ${tokenSym} at ${short(tokenAddr)}.`, "ok");
     await refresh();
   } catch (e) {
@@ -377,7 +377,7 @@ $("btnDeployFactory").onclick = async () => {
     await c.waitForDeployment();
     const addr = await c.getAddress();
     $("factoryAddr").value = addr;
-    localStorage.setItem("serf.factory", addr);
+    localStorage.setItem("fers.factory", addr);
     log(`LaunchFactory deployed at ${addr} — saved. Now fill the launch form and click 'Create launch'.`, "ok");
   } catch (e) {
     log(`Factory deploy: ${e.reason ?? e.shortMessage ?? e.message}`, "err");

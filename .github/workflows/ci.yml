@@ -34,3 +34,33 @@ jobs:
 
       - name: Test
         run: pytest -q
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      # The fork tests replay real Base mainnet state. Cache it so CI is not
+      # hammering a free public RPC on every push — that rate-limits and reads
+      # as a test failure, which is how a green suite starts looking red.
+      - name: Cache RPC responses
+        uses: actions/cache@v4
+        with:
+          path: ~/.foundry/cache/rpc
+          key: rpc-base-${{ hashFiles('contracts/test/*.sol') }}
+          restore-keys: rpc-base-
+
+      - name: Test
+        working-directory: contracts
+        env:
+          # Override the public endpoint when a key is available. Without the
+          # secret this falls through to foundry.toml's public URL.
+          FOUNDRY_RPC_ENDPOINTS_BASE: ${{ secrets.BASE_RPC_URL }}
+        run: |
+          forge test -vv || {
+            echo "::warning::first run failed — retrying once in case of RPC rate limiting"
+            sleep 20
+            forge test -vv
+          }

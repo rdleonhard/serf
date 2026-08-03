@@ -50,7 +50,7 @@ contract DiemLaunchForkTest {
         // 0. Platform deploys a launch.
         LaunchFactory factory = new LaunchFactory();
         vm.prank(CREATOR);
-        (address poolAddr, address tokenAddr) = factory.createLaunch("Serf", "SERF", 1000e18, address(0), 0);
+        (address poolAddr, address tokenAddr) = factory.createLaunch("Fers", "FERS", 1000e18, address(0), 0);
         LaunchPool pool = LaunchPool(poolAddr);
         LaunchToken token = LaunchToken(tokenAddr);
 
@@ -85,7 +85,7 @@ contract DiemLaunchForkTest {
     /// would prove nothing about access control.
     function testOnlyOwnerGuards() external {
         vm.createSelectFork("base");
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
 
         vm.startPrank(BUYER);
         vm.expectRevert("NOT_OWNER");
@@ -102,7 +102,7 @@ contract DiemLaunchForkTest {
     /// A buy too small to mint a whole token must revert, not silently eat VVV.
     function testDustBuyReverts() external {
         vm.createSelectFork("base");
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1, address(0), 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 1e18);
 
@@ -118,7 +118,7 @@ contract DiemLaunchForkTest {
     /// already locked (Venice's balanceOf does not).
     function testIncrementalLockAccounting() external {
         vm.createSelectFork("base");
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 100e18);
         vm.startPrank(BUYER);
@@ -146,7 +146,7 @@ contract DiemLaunchForkTest {
     /// so nobody can divert buyback fuel into permanently-locked principal.
     function testCompoundIsSafeWhenEmptyAndOwnerGated() external {
         vm.createSelectFork("base");
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
         vm.prank(BUYER);
         vm.expectRevert("NOT_OWNER");
         pool.compound();
@@ -172,23 +172,23 @@ contract DiemLaunchForkTest {
 
     function testBuybackAndBurn() external {
         vm.createSelectFork("base");
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
-        LaunchToken serf = pool.token();
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
+        LaunchToken fers = pool.token();
 
-        // Buyer converts 200 VVV -> 200k SERF (staked to sVVV inside the pool).
+        // Buyer converts 200 VVV -> 200k FERS (staked to sVVV inside the pool).
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 200e18);
         vm.startPrank(BUYER);
         VVV.approve(address(pool), 200e18);
         pool.buy(200e18);
-        // hand the test contract SERF + VVV to seed a Uniswap pool
-        serf.transfer(address(this), 150_000e18);
+        // hand the test contract FERS + VVV to seed a Uniswap pool
+        fers.transfer(address(this), 150_000e18);
         vm.stopPrank();
         vm.prank(address(STAKING));
         VVV.transfer(address(this), 150_000e18);
 
-        // Create + seed a real VVV/SERF Uniswap V3 pool at 1:1, full range.
-        univ3 = IUniV3Pool(UNI_FACTORY.createPool(address(VVV), address(serf), FEE));
+        // Create + seed a real VVV/FERS Uniswap V3 pool at 1:1, full range.
+        univ3 = IUniV3Pool(UNI_FACTORY.createPool(address(VVV), address(fers), FEE));
         univ3.initialize(SQRT_PRICE_1_1);
         univ3.mint(address(this), -887220, 887220, uint128(100_000e18), "");
 
@@ -201,13 +201,13 @@ contract DiemLaunchForkTest {
         require(VVV.balanceOf(address(pool)) == claimed, "claimed VVV not liquid in pool");
 
         // Wrong path direction must be rejected.
-        bytes memory badPath = abi.encodePacked(address(serf), FEE, address(VVV));
+        bytes memory badPath = abi.encodePacked(address(fers), FEE, address(VVV));
         vm.prank(CREATOR);
         vm.expectRevert("BAD_PATH_ENDS");
         pool.buybackAndBurn(badPath, claimed, 1);
 
         // Non-owner must be rejected.
-        bytes memory path = abi.encodePacked(address(VVV), FEE, address(serf));
+        bytes memory path = abi.encodePacked(address(VVV), FEE, address(fers));
         vm.prank(BUYER);
         vm.expectRevert("NOT_OWNER");
         pool.buybackAndBurn(path, claimed, 1);
@@ -217,13 +217,13 @@ contract DiemLaunchForkTest {
         vm.expectRevert("INSUFFICIENT_VVV");
         pool.buybackAndBurn(path, claimed + 1e18, 1);
 
-        // The real thing: spend claimed yield on SERF and truly burn it.
-        uint256 supplyBefore = serf.totalSupply();
+        // The real thing: spend claimed yield on FERS and truly burn it.
+        uint256 supplyBefore = fers.totalSupply();
         vm.prank(CREATOR);
         uint256 burned = pool.buybackAndBurn(path, claimed, 1);
         require(burned > 0, "nothing bought back");
-        require(serf.totalSupply() == supplyBefore - burned, "totalSupply did not fall");
-        require(serf.balanceOf(address(pool)) == 0, "pool still holding unburned SERF");
+        require(fers.totalSupply() == supplyBefore - burned, "totalSupply did not fall");
+        require(fers.balanceOf(address(pool)) == 0, "pool still holding unburned FERS");
         require(VVV.balanceOf(address(pool)) == 0, "yield not fully spent");
     }
 }

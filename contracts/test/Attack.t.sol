@@ -60,7 +60,7 @@ contract AttackTest {
     }
 
     function _newPool(uint256 rate, uint256 cap) internal returns (LaunchPool p) {
-        p = new LaunchPool(CREATOR, "Serf", "SERF", rate, address(0), cap);
+        p = new LaunchPool(CREATOR, "Fers", "FERS", rate, address(0), cap);
     }
 
     // ------------------------------------------------------------------
@@ -70,39 +70,39 @@ contract AttackTest {
     // ------------------------------------------------------------------
     function testPegArbitrageDrainsBuybackValue() external {
         vm.createSelectFork("base");
-        // 1 VVV -> 1 SERF peg, uncapped, sale left OPEN.
+        // 1 VVV -> 1 FERS peg, uncapped, sale left OPEN.
         LaunchPool pool = _newPool(1e18, 0);
-        LaunchToken serf = pool.token();
+        LaunchToken fers = pool.token();
 
-        // seed a 1:1 VVV/SERF pool
+        // seed a 1:1 VVV/FERS pool
         _fund(BUYER, 60_000e18);
         vm.startPrank(BUYER);
         VVV.approve(address(pool), 60_000e18);
         pool.buy(60_000e18);
-        serf.transfer(address(this), 50_000e18);
+        fers.transfer(address(this), 50_000e18);
         vm.stopPrank();
         _fund(address(this), 50_000e18);
 
-        univ3 = IUniV3Pool(UNI.createPool(address(VVV), address(serf), FEE));
+        univ3 = IUniV3Pool(UNI.createPool(address(VVV), address(fers), FEE));
         univ3.initialize(SQRT_1_1);
         univ3.mint(address(this), -887220, 887220, uint128(20_000e18), "");
 
-        // Owner burns 5,000 VVV of treasury yield buying SERF -> price rises.
+        // Owner burns 5,000 VVV of treasury yield buying FERS -> price rises.
         _fund(address(pool), 5_000e18);
-        bytes memory buyPath = abi.encodePacked(address(VVV), FEE, address(serf));
+        bytes memory buyPath = abi.encodePacked(address(VVV), FEE, address(fers));
         vm.prank(CREATOR);
         pool.buybackAndBurn(buyPath, 5_000e18, 1);
 
-        // Arbitrageur: mint at the peg (1 VVV -> 1 SERF), sell into the pumped pool.
+        // Arbitrageur: mint at the peg (1 VVV -> 1 FERS), sell into the pumped pool.
         uint256 stake = 5_000e18;
         _fund(ATTACKER, stake);
         vm.startPrank(ATTACKER);
         VVV.approve(address(pool), stake);
         uint256 minted = pool.buy(stake);
-        serf.approve(address(ROUTER), minted);
+        fers.approve(address(ROUTER), minted);
         uint256 vvvBack = ROUTER.exactInput(
             IRouter.ExactInputParams({
-                path: abi.encodePacked(address(serf), FEE, address(VVV)),
+                path: abi.encodePacked(address(fers), FEE, address(VVV)),
                 recipient: ATTACKER,
                 amountIn: minted,
                 amountOutMinimum: 0
@@ -142,11 +142,11 @@ contract AttackTest {
     /// The supply cap bounds dilution even with the sale left open.
     function testSupplyCapEnforced() external {
         vm.createSelectFork("base");
-        LaunchPool pool = _newPool(1000e18, 50_000e18); // cap 50k SERF
+        LaunchPool pool = _newPool(1000e18, 50_000e18); // cap 50k FERS
         _fund(BUYER, 100e18);
         vm.startPrank(BUYER);
         VVV.approve(address(pool), 100e18);
-        pool.buy(40e18); // 40k SERF, ok
+        pool.buy(40e18); // 40k FERS, ok
         vm.expectRevert("CAP_EXCEEDED");
         pool.buy(20e18); // would be 60k total
         vm.stopPrank();
@@ -196,13 +196,13 @@ contract AttackTest {
     function testTokenRejectsZeroAddressTransfer() external {
         vm.createSelectFork("base");
         LaunchPool pool = _newPool(1000e18, 0);
-        LaunchToken serf = pool.token();
+        LaunchToken fers = pool.token();
         _fund(BUYER, 10e18);
         vm.startPrank(BUYER);
         VVV.approve(address(pool), 10e18);
         pool.buy(10e18);
         vm.expectRevert("ZERO_DEST");
-        serf.transfer(address(0), 1e18);
+        fers.transfer(address(0), 1e18);
         vm.stopPrank();
     }
 
@@ -210,29 +210,29 @@ contract AttackTest {
     function testDonatedTokensNotBurnedAsBuyback() external {
         vm.createSelectFork("base");
         LaunchPool pool = _newPool(1e18, 0);
-        LaunchToken serf = pool.token();
+        LaunchToken fers = pool.token();
 
         _fund(BUYER, 60_000e18);
         vm.startPrank(BUYER);
         VVV.approve(address(pool), 60_000e18);
         pool.buy(60_000e18);
-        serf.transfer(address(this), 50_000e18);
-        serf.transfer(address(pool), 1_000e18); // donation / griefing
+        fers.transfer(address(this), 50_000e18);
+        fers.transfer(address(pool), 1_000e18); // donation / griefing
         vm.stopPrank();
         _fund(address(this), 50_000e18);
 
-        univ3 = IUniV3Pool(UNI.createPool(address(VVV), address(serf), FEE));
+        univ3 = IUniV3Pool(UNI.createPool(address(VVV), address(fers), FEE));
         univ3.initialize(SQRT_1_1);
         univ3.mint(address(this), -887220, 887220, uint128(20_000e18), "");
 
         _fund(address(pool), 100e18);
-        uint256 donated = serf.balanceOf(address(pool));
-        bytes memory path = abi.encodePacked(address(VVV), FEE, address(serf));
+        uint256 donated = fers.balanceOf(address(pool));
+        bytes memory path = abi.encodePacked(address(VVV), FEE, address(fers));
         vm.prank(CREATOR);
         uint256 burned = pool.buybackAndBurn(path, 100e18, 1);
 
         require(burned < donated, "burned amount swallowed the donation");
-        require(serf.balanceOf(address(pool)) == donated, "donation was consumed");
+        require(fers.balanceOf(address(pool)) == donated, "donation was consumed");
     }
 
     function _u(uint256 v) internal pure returns (string memory) {
