@@ -1,0 +1,5 @@
+# Foundry build artefacts. Thousands of generated JSON files that must never
+# reach the repo — and `git add -A` is the habit here, so this is the guard.
+out/
+cache/
+broadcast/

@@ -527,6 +527,96 @@ Mechanical, on-chain, and worth automating early:
 - **Split `lockedUntil` and the operator address** — assume it can be revoked and
   price accordingly.
 
+## 7c. The Inns: attorney agents for hire, rented to attorneys
+
+*Added 2026-08-03. A second service on the §7b substrate — and the first one that can be
+tested before any SERF infrastructure exists.*
+
+A roster of specialist attorney agents that audits crypto-project repositories for legal
+issues, rented **to licensed attorneys, never to the public**. The firm is the client; we
+sell supervised labor, the lawyer sells judgment. Revenue flows to the shared DIEM pool
+([TAVERN.md](TAVERN.md) §3) — the practice funds the tavern. Collective noun: **the Inns**,
+after the Inns of Court — the guild-houses where English lawyers have trained and dined
+since the middle ages, which keeps the whole roster inside the feudal lore without
+inventing anything.
+
+**Why crypto repos, not "any repo."** For an ordinary repo the dominant legal surface is
+licensing, and that market is already served by deterministic tools (FOSSA, Black Duck,
+ScanCode) that don't hallucinate. The gap is repos where **the code embodies a regulated
+activity**: a smart contract repo isn't *described by* the offering documents — it *is*
+the offering. Fee switches, admin keys, buyback mechanics, revenue distribution logic are
+Howey facts sitting in Solidity, and today nobody reads them for that purpose — security
+auditors aren't looking for securities issues, and traditional counsel reads the
+whitepaper, not the repo. Same pattern for money-transmission logic, sanctions exposure
+(the Tornado Cash lesson: the risk was in the architecture), gambling mechanics. Launch as
+*legal audit for onchain protocols*; generalize outward only after the economics burn in.
+
+**Why rent to attorneys — three structural wins, only one of them obvious:**
+
+| Problem | How the attorney-as-client solves it |
+|---|---|
+| **UPL** | With a lawyer as the client, the agents are supervised legal technology — same regulatory category as a contract-attorney staffing agency. The lawyer owns the judgment; we sell labor. |
+| **Liability** | The attorney's professional judgment and malpractice coverage sit between agent output and end client. We deliver findings to a professional paid to weigh them — not a warranty that can be sued for being wrong. |
+| **Privilege** | An audit the protocol commissions from us directly is discoverable. The same analysis commissioned by outside counsel as part of representation can sit under work-product protection. Crypto clients grasp this instantly — the doctrine hands lawyers the tollbooth, and we sell what goes through it. |
+
+Privilege is the one that makes attorneys the *natural* distribution channel rather than a
+compliance workaround: even when the protocol wants the audit, it should flow through
+counsel.
+
+**Topology.** Generalist boss triages the repo, then hires specialists — the same
+boss-and-workers shape as everything else here. One rule: **route by fact pattern, not by
+statute.** The 33-Act-vs-40-Act distinction is the specialist's *output*, not the routing
+key. The generalist tags "this repo pools third-party assets and distributes returns," and
+that wakes both the '33 Act and '40 Act experts, who may disagree about characterization —
+statute-keyed routing assumes the triage already knows the answer.
+
+**Economics — the noise problem is the design problem.** Specialists rewarded for
+generating issues will generate noise ("this MIT header is missing a year"), and the
+product dies of false positives like early security scanners did. So the §7b mechanics
+apply internally: specialists **stake on findings**, every finding passes an adversarial
+skeptic whose job is to kill it, payout on confirmed findings, slash on killed ones. The
+fitness function is *findings a human counsel acts on*, and the population adapts to it.
+The firm never sees any of this — it sees a **flat engagement fee** (attorneys hate
+variable vendor costs); the fee funds the internal bounty pool the specialists compete
+over. The roster's moat is the **accuracy ledger**, same doctrine as §7b's ratings: a
+hiring partner picking "40 Act specialist, 34 confirmed findings, 6% kill rate" over a
+fresh prompt is choosing a senior associate over a first-year. Publish the record, not the
+approval.
+
+**The invariant: reputation persists, memory does not.** An agent that carries context
+across engagements is a walking conflicts-and-confidentiality breach — no firm can touch a
+specialist that reviewed a competitor's repo last month and remembers it. Every engagement
+gets **ephemeral instances**; the only things that survive are the stake and the scored
+record. The ledger remembers, the worker forgets. (This is the §7b coach/boss wall in a
+new costume, and it's non-negotiable for the same reason.)
+
+**The deliverable is the product.** Firms will judge the memo, not the mechanism. Findings
+format, per finding:
+
+- facts observed in the repo, with file-and-line receipts
+- statute or doctrine implicated
+- the specialist's confidence, and what it staked
+- the skeptic's best objection, if the finding survived one
+- questions for counsel — *never* conclusions of law
+
+Framed throughout as issue-spotting for counsel, in the register of an auditor's findings
+memo. That is both the UPL-safe framing and the honest one.
+
+**One line for the book, and one rule.** The lawyers' billable hours keep the avis' compute
+funded — a law practice whose profits fund an afterlife. But the avis are **beneficiaries
+of the practice, never the attorneys**: a deceased person's persona practicing law has no
+license and rents out macabre in a due-diligence call. The dead drink on the lawyers'
+earnings; they don't bill.
+
+**Sequencing — the pilot precedes SERF.** Nothing above needs the revnet, the seat, or a
+live token. A pilot needs: agents, a repo, a findings template, and one friendly attorney
+to read the memo. Dogfood target #1 is **our own contracts/** — SERF the token protocol,
+audited by SERF the protocol, is both the cheapest test and a book chapter. The pilot
+answers three questions before any of §5 ships: does the triage→specialist routing produce
+findings a lawyer acts on; what's the real DIEM burn per audit; does the skeptic layer
+hold the false-positive rate down. Internal stakes can be denominated in play-money units
+until the token exists — the selection pressure works the same.
+
 ## 8. First 90 days
 
 **Weeks 1–3 — v0, local, Carnegie only.**
@@ -544,6 +634,14 @@ gag.
 GitHub App. Milestone schema + attestation with receipts. Dev-first disclosure flow. Run it
 live on one real portfolio deal, with a human override on every attestation for the first
 several months.
+
+**Parallel track, weeks 1–11 — the Inns pilot (§7c).**
+Independent of the CLI and needs none of the on-chain stack, so it runs alongside.
+Weeks 1–3: findings-memo template + generalist triage prompt, run against our own
+contracts/. Weeks 4–7: specialist roster with staked findings and the skeptic layer,
+play-money stakes, measure the confirmed-vs-killed rate. Weeks 8–11: one friendly
+attorney reads a real memo on a real third-party repo and tells us whether they'd bill
+against it. That answer gates whether the Inns go in the revnet story at week 12.
 
 **Week 12+ — revnet.**
 Deploy with 90 days of real usage data, the chalk-mark boards, and one attested milestone as
@@ -575,3 +673,15 @@ Earlier: coach-vs-overseer → §2 + §2a (discretion, not deception) · the per
    testing both.
 3. **Does a sponsored seat's rider survive repo change** — if the dev unbinds and rebinds a
    different repo, does reporting follow? Legal question more than a technical one.
+4. **Does unused daily DIEM credit expire at the epoch, or bank?** Undocumented as of
+   2026-08-03; ask Venice. The answer sets the sign of the entire twilight direction —
+   see [TAVERN.md](TAVERN.md), which is where SERF and WAKE are headed jointly.
+5. **The friendly attorney for the Inns pilot (§7c)** — who reads the first memo? Needs to
+   be someone who'd honestly say "I would not bill against this," not a friend being kind.
+6. **Inns revenue split between the SERF treasury and the WAKE pool** — the practice funds
+   the tavern, but in what proportion? Interacts with #4: if credit banks, the WAKE share
+   becomes an endowment question, not a burn-rate question.
+7. **Engagement-term lock for attorney specialists** — §7b locks the baron for the term so
+   a bad verdict can't get the judge swapped. Does the firm get the same rule, or may
+   counsel swap specialists mid-audit? Firms will expect control; the accuracy ledger
+   argues for the lock. Decide before the first paid engagement.
