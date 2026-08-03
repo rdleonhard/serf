@@ -5,7 +5,7 @@ import {LaunchFactory, LaunchPool, LaunchToken, IERC20, IVeniceStaking} from "..
 
 // Self-contained cheatcode interface (no forge-std dependency).
 interface Vm {
-    function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+    function createSelectFork(string calldata urlOrAlias, uint256 blockNumber) external returns (uint256);
     function prank(address sender) external;
     function startPrank(address sender) external;
     function stopPrank() external;
@@ -38,7 +38,7 @@ contract DiemLaunchForkTest {
     address constant CREATOR = address(0xA11CE);
 
     function testFullFlow() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
 
         // Fund the buyer with VVV by impersonating the staking contract,
         // which holds users' staked VVV.
@@ -84,7 +84,7 @@ contract DiemLaunchForkTest {
     /// the call reverts for an unrelated reason (e.g. no sVVV to lock), which
     /// would prove nothing about access control.
     function testOnlyOwnerGuards() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
 
         vm.startPrank(BUYER);
@@ -101,7 +101,7 @@ contract DiemLaunchForkTest {
 
     /// A buy too small to mint a whole token must revert, not silently eat VVV.
     function testDustBuyReverts() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1, address(0), 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 1e18);
@@ -117,7 +117,7 @@ contract DiemLaunchForkTest {
     /// Locking must be incremental, and lockableBalance() must exclude what is
     /// already locked (Venice's balanceOf does not).
     function testIncrementalLockAccounting() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 100e18);
@@ -145,7 +145,7 @@ contract DiemLaunchForkTest {
     /// compound() must not revert when nothing has accrued, and must be owner-gated
     /// so nobody can divert buyback fuel into permanently-locked principal.
     function testCompoundIsSafeWhenEmptyAndOwnerGated() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
         vm.prank(BUYER);
         vm.expectRevert("NOT_OWNER");
@@ -171,7 +171,7 @@ contract DiemLaunchForkTest {
     }
 
     function testBuybackAndBurn() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
         LaunchToken fers = pool.token();
 

@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {LaunchPool, LaunchToken, LaunchFactory, IERC20} from "../src/DiemLaunch.sol";
 
 interface Vm {
-    function createSelectFork(string calldata urlOrAlias) external returns (uint256);
+    function createSelectFork(string calldata urlOrAlias, uint256 blockNumber) external returns (uint256);
     function prank(address sender) external;
     function startPrank(address sender) external;
     function stopPrank() external;
@@ -69,7 +69,7 @@ contract AttackTest {
     // who mints at peg and dumps. The yield leaks out instead of accruing.
     // ------------------------------------------------------------------
     function testPegArbitrageDrainsBuybackValue() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         // 1 VVV -> 1 FERS peg, uncapped, sale left OPEN.
         LaunchPool pool = _newPool(1e18, 0);
         LaunchToken fers = pool.token();
@@ -120,7 +120,7 @@ contract AttackTest {
 
     /// Closing the sale removes the arbitrage: minting at peg is no longer possible.
     function testClosedSaleBlocksPegArbitrage() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = _newPool(1e18, 0);
         _fund(BUYER, 10e18);
         vm.startPrank(BUYER);
@@ -141,7 +141,7 @@ contract AttackTest {
 
     /// The supply cap bounds dilution even with the sale left open.
     function testSupplyCapEnforced() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = _newPool(1000e18, 50_000e18); // cap 50k FERS
         _fund(BUYER, 100e18);
         vm.startPrank(BUYER);
@@ -158,7 +158,7 @@ contract AttackTest {
     // the DIEM treasury permanently.
     // ------------------------------------------------------------------
     function testOwnershipRequiresAcceptance() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = _newPool(1000e18, 0);
 
         vm.prank(CREATOR);
@@ -185,7 +185,7 @@ contract AttackTest {
     // ATTACK 3: misc hardening
     // ------------------------------------------------------------------
     function testBuybackRejectsZeroSlippageBound() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = _newPool(1000e18, 0);
         bytes memory path = abi.encodePacked(address(VVV), FEE, address(pool.token()));
         vm.prank(CREATOR);
@@ -194,7 +194,7 @@ contract AttackTest {
     }
 
     function testTokenRejectsZeroAddressTransfer() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = _newPool(1000e18, 0);
         LaunchToken fers = pool.token();
         _fund(BUYER, 10e18);
@@ -208,7 +208,7 @@ contract AttackTest {
 
     /// Donated launch tokens must not be miscounted as bought-back supply.
     function testDonatedTokensNotBurnedAsBuyback() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("base", 49489240);
         LaunchPool pool = _newPool(1e18, 0);
         LaunchToken fers = pool.token();
 

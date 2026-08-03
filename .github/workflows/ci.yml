@@ -52,15 +52,24 @@ jobs:
           key: rpc-base-${{ hashFiles('contracts/test/*.sol') }}
           restore-keys: rpc-base-
 
+      - name: Build (always — catches compile breaks without any RPC)
+        working-directory: contracts
+        run: forge build
+
       - name: Test
         working-directory: contracts
         env:
-          # Override the public endpoint when a key is available. Without the
-          # secret this falls through to foundry.toml's public URL.
           FOUNDRY_RPC_ENDPOINTS_BASE: ${{ secrets.BASE_RPC_URL }}
         run: |
-          forge test -vv || {
-            echo "::warning::first run failed — retrying once in case of RPC rate limiting"
-            sleep 20
-            forge test -vv
-          }
+          # Every test forks Base. The free public endpoint 429s from shared
+          # Actions IPs, which fails in a way that looks like broken contracts
+          # rather than a throttled RPC — the worst kind of red, because people
+          # learn to ignore it. Run for real only with a dedicated endpoint;
+          # otherwise say plainly that they did not run.
+          if [ -z "${FOUNDRY_RPC_ENDPOINTS_BASE}" ]; then
+            echo "::warning title=Fork tests skipped::No BASE_RPC_URL secret. \
+          The 13 fork tests did NOT run. Add a free Alchemy/QuickNode Base key \
+          as the BASE_RPC_URL repo secret to enable them."
+            exit 0
+          fi
+          forge test -vv
