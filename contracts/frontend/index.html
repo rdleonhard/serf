@@ -141,6 +141,10 @@
       <button id="btnBuy" class="primary">Buy</button>
     </div>
     <div class="sub" style="margin:0">Approves the pool to pull VVV, then buys. VVV is staked to sVVV in the same tx.</div>
+    <div class="row" style="margin-top:.75rem">
+      <button id="btnLockAll">Lock all &rarr; DIEM (anyone, v2 pools)</button>
+    </div>
+    <div class="sub" style="margin:0">Permissionless convergence: locks the pool&rsquo;s entire lockable sVVV at the exact on-chain quote.</div>
   </div>
 
   <div class="panel ownerOnly" id="ownerPanel">
@@ -182,6 +186,9 @@
     </div>
     <div class="row">
       <button id="btnSaleToggle" class="danger">Toggle saleOpen</button>
+      <button id="btnCloseForever" class="danger">Close sale FOREVER (v2)</button>
+    </div>
+    <div class="row">
       <input id="newOwner" placeholder="transfer ownership to">
       <button id="btnSetOwner">Set</button>
       <button id="btnAccept">Accept ownership</button>
@@ -220,6 +227,9 @@ const POOL_ABI = [
   "function lockableBalance() view returns (uint256)",
   "function pendingYield() view returns (uint256)",
   "function buy(uint256 vvvAmount) returns (uint256)",
+  "function lockAll() returns (uint256)",
+  "function closeSaleForever()",
+  "function saleClosedForever() view returns (bool)",
   "function lockForDiem(uint256 sVVVAmount, uint256 minDiemOut) returns (uint256)",
   "function collectDiem(address to, uint256 amount)",
   "function claimYield() returns (uint256)",
@@ -457,9 +467,19 @@ $("btnBuyback").onclick = async () => {
   const path = ethers.solidityPacked(["address", "uint24", "address"], [ADDR.VVV, +$("bbFee").value, token.target]);
   await tx(`buyback ${fmt(amt)} VVV`, () => pool.buybackAndBurn(path, amt, minOut));
 };
+$("btnLockAll").onclick = async () => {
+  await tx("lockAll", () => pool.lockAll());
+};
+
 $("btnSaleToggle").onclick = async () => {
   const cur = await pool.saleOpen();
   await tx(`setSaleOpen(${!cur})`, () => pool.setSaleOpen(!cur));
+};
+
+$("btnCloseForever").onclick = async () => {
+  const typed = prompt("This permanently ends the sale for this pool. No owner, including you, can ever reopen it. Type FOREVER to proceed:");
+  if (typed !== "FOREVER") { log("Close-forever cancelled.", "err"); return; }
+  await tx("closeSaleForever", () => pool.closeSaleForever());
 };
 $("btnSetOwner").onclick = () => tx("setOwner", () => pool.setOwner($("newOwner").value.trim()));
 $("btnAccept").onclick = () => tx("acceptOwnership", () => pool.acceptOwnership());

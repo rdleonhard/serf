@@ -121,6 +121,13 @@ contract LaunchPool {
     uint256 public tokensPerVVV; // launch tokens minted per 1e18 VVV, 1e18-scaled
     bool public saleOpen = true;
 
+    /// One-way switch. An open fixed-rate sale is a hard price ceiling on the
+    /// launch token (proven arbitrageable in Attack.t.sol), so before a revnet
+    /// or any buyback-driven price support goes live, the sale must be closed
+    /// in a way the owner cannot quietly reverse. Once set, buy() is dead and
+    /// setSaleOpen() cannot reopen it.
+    bool public saleClosedForever;
+
     /// Venice's sVVV balanceOf() keeps counting sVVV that is already locked into
     /// DIEM, and re-locking it reverts with INSUFFICIENT_BALANCE. There is no
     /// public getter for the locked portion, so the pool tracks it here.
@@ -154,6 +161,7 @@ contract LaunchPool {
     event DiemCollected(address indexed to, uint256 amount);
     event YieldClaimed(uint256 vvvAmount);
     event BuybackBurned(uint256 vvvIn, uint256 tokensBurned);
+    event SaleClosedForever();
     event SaleOpenSet(bool open);
     event OwnerSet(address indexed newOwner);
 
@@ -215,6 +223,27 @@ contract LaunchPool {
     function lockableBalance() public view returns (uint256) {
         uint256 bal = STAKING.balanceOf(address(this));
         return bal > totalLocked ? bal - totalLocked : 0;
+    }
+
+    /// PERMISSIONLESS: converge the pool to 100% DIEM. Anyone may call; locking
+    /// everything lockable is always the mission, so there is nothing to grief.
+    /// minDiemOut is the same-transaction quote: getDiemAmountOut and mintDiem
+    /// read identical state, so today this is exact (verified on fork — the
+    /// mint pays out precisely the quote). If a Venice upgrade ever breaks that
+    /// equality, this fails closed instead of accepting a surprise rate.
+    /// Honest limitation: a same-block quote cannot defend against curve
+    /// manipulation via DIEM supply changes; it defends against upgrades and
+    /// nonlinearity, not MEV. The curve's supply-dependence makes manipulation
+    /// capital-expensive (attacker must lock own sVVV), not impossible.
+    function lockAll() external nonReentrant returns (uint256 diemOut) {
+        uint256 amount = lockableBalance();
+        require(amount != 0, "NOTHING_TO_LOCK");
+        uint256 quote = STAKING.getDiemAmountOut(amount);
+        uint256 before = DIEM.balanceOf(address(this));
+        STAKING.mintDiem(amount, quote);
+        diemOut = DIEM.balanceOf(address(this)) - before;
+        totalLocked += amount;
+        emit DiemMinted(amount, diemOut);
     }
 
     /// Send minted DIEM to the owner's wallet (stake it with Venice for API capacity).
@@ -302,8 +331,19 @@ contract LaunchPool {
     }
 
     function setSaleOpen(bool open) external onlyOwner {
+        require(!saleClosedForever, "CLOSED_FOREVER");
         saleOpen = open;
         emit SaleOpenSet(open);
+    }
+
+    /// Irreversibly end the sale. Required sequencing before a revnet (or any
+    /// price-support mechanism) goes live: an open fixed-rate sale caps the
+    /// token price at the peg and converts price support into arbitrage profit.
+    function closeSaleForever() external onlyOwner {
+        saleClosedForever = true;
+        saleOpen = false;
+        emit SaleClosedForever();
+        emit SaleOpenSet(false);
     }
 
     /// Step 1 of 2. The new owner must call acceptOwnership() to take control,

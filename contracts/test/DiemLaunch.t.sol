@@ -14,6 +14,12 @@ interface Vm {
     function warp(uint256 newTimestamp) external;
 }
 
+interface IStakingFull {
+    function mintDiem(uint256 sVVVAmountToLock, uint256 minDiemAmountOut) external;
+    function burnDiem(uint256 diemAmountToBurn) external;
+    function initiateUnstake(uint256 amount) external;
+}
+
 interface IUniV3Factory {
     function createPool(address tokenA, address tokenB, uint24 fee) external returns (address pool);
 }
@@ -153,6 +159,87 @@ contract DiemLaunchForkTest {
 
         vm.prank(CREATOR);
         require(!pool.compound(), "should report nothing claimed");
+    }
+
+    /// lockAll: anyone converges the pool to 100% DIEM, exactly at quote.
+    function testLockAllPermissionlessAndExact() external {
+        vm.createSelectFork("base", 49489240);
+        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        vm.prank(address(STAKING));
+        VVV.transfer(BUYER, 150e18);
+        vm.startPrank(BUYER);
+        VVV.approve(address(pool), 150e18);
+        pool.buy(100e18);
+        vm.stopPrank();
+
+        uint256 quote = STAKING.getDiemAmountOut(100e18);
+        address rando = address(0xFAFF);
+        vm.prank(rando);
+        uint256 diemOut = pool.lockAll();
+        require(diemOut == quote, "same-tx quote must be exact");
+        require(pool.lockableBalance() == 0, "not fully converged");
+        require(DIEM.balanceOf(address(pool)) == diemOut, "diem missing");
+
+        // empty pool: nothing to lock
+        vm.prank(rando);
+        vm.expectRevert("NOTHING_TO_LOCK");
+        pool.lockAll();
+
+        // new buy re-arms it — convergence is incremental
+        vm.startPrank(BUYER);
+        pool.buy(50e18);
+        vm.stopPrank();
+        vm.prank(rando);
+        require(pool.lockAll() > 0, "second tranche failed");
+        require(pool.totalLocked() == 150e18, "totalLocked wrong");
+    }
+
+    /// closeSaleForever: owner-only, kills buy() permanently, reopen impossible.
+    function testCloseSaleForever() external {
+        vm.createSelectFork("base", 49489240);
+        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        vm.prank(BUYER);
+        vm.expectRevert("NOT_OWNER");
+        pool.closeSaleForever();
+
+        vm.prank(CREATOR);
+        pool.closeSaleForever();
+        require(pool.saleClosedForever() && !pool.saleOpen(), "not closed");
+
+        vm.prank(CREATOR);
+        vm.expectRevert("CLOSED_FOREVER");
+        pool.setSaleOpen(true);
+
+        vm.prank(address(STAKING));
+        VVV.transfer(BUYER, 1e18);
+        vm.startPrank(BUYER);
+        VVV.approve(address(pool), 1e18);
+        vm.expectRevert("SALE_CLOSED");
+        pool.buy(1e18);
+        vm.stopPrank();
+    }
+
+    /// Venice-layer reversibility: burnDiem returns ALL locked sVVV, which can
+    /// then begin unstaking. This documents that the POOL's one-way treasury is
+    /// a design choice (rug resistance), not a Venice limitation — and that
+    /// treasury DIEM retains full sVVV optionality.
+    function testVeniceBurnDiemRoundTripIsSymmetric() external {
+        vm.createSelectFork("base", 49489240);
+        address eoa = address(0xE0A1);
+        vm.prank(address(STAKING));
+        VVV.transfer(eoa, 100e18);
+
+        vm.startPrank(eoa);
+        VVV.approve(address(STAKING), 100e18);
+        STAKING.stake(eoa, 100e18);
+        IStakingFull(address(STAKING)).mintDiem(100e18, 0);
+        uint256 d = DIEM.balanceOf(eoa);
+        require(d > 0, "no diem minted");
+        IStakingFull(address(STAKING)).burnDiem(d);
+        require(DIEM.balanceOf(eoa) == 0, "diem not burned");
+        require(STAKING.balanceOf(eoa) == 100e18, "sVVV principal changed");
+        IStakingFull(address(STAKING)).initiateUnstake(100e18); // reverts if any sVVV still locked
+        vm.stopPrank();
     }
 
     // ---------------- buyback-and-burn (real Uniswap V3 on fork) ----------------
