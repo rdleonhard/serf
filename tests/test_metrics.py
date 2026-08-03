@@ -273,3 +273,28 @@ def test_slag_is_complete_when_under_the_cap(repo, cfg, today_window, days_ago):
     obs, stats = look(cfg, today_window)
     assert stats.slag_complete is True
     assert "SAMPLE" not in metrics.evidence_packet(stats, obs, cfg, [])
+
+
+# --------------------------------------------------------------------------
+# the packet must not let a low Mark be mistaken for an idle day
+
+def test_packet_warns_when_work_sits_unlanded(repo, cfg, today_window):
+    from tests.conftest import _git
+    repo.write("src/a.py", FOUR)
+    repo.commit("baseline")
+    _git(repo.path, "checkout", "-q", "-b", "side")
+    repo.write("src/b.py", FOUR)
+    repo.commit("unlanded work")
+
+    obs, stats = look(cfg, today_window)
+    packet = metrics.evidence_packet(stats, obs, cfg, [])
+    assert "BRANCH STATE" in packet
+    assert "'side'" in packet and "'main'" in packet
+    assert "not landed rather than work not done" in packet
+
+
+def test_packet_says_nothing_about_branches_when_on_trunk(repo, cfg, today_window):
+    repo.write("src/a.py", FOUR)
+    repo.commit("on trunk")
+    obs, stats = look(cfg, today_window)
+    assert "BRANCH STATE" not in metrics.evidence_packet(stats, obs, cfg, [])

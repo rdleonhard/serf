@@ -135,6 +135,13 @@ class Observation:
     trunk: str
     commits: list[Commit]
     ci: list[CIRun] | None  # None = no CI data available (gh missing/unauthed)
+    head: str = ""          # the branch actually checked out
+    unmerged: int = 0       # commits on HEAD that have not reached trunk
+
+    @property
+    def diverged(self) -> bool:
+        """True when work is happening somewhere the Mark is not looking."""
+        return bool(self.head and self.head != self.trunk and self.unmerged)
 
     @property
     def ci_failure_rate(self) -> float | None:
@@ -218,7 +225,25 @@ def collect(cfg: Config, since: datetime, until: datetime) -> Observation:
         trunk=cfg.trunk,
         commits=commits,
         ci=_ci_runs(cfg),
+        head=head_branch(cfg),
+        unmerged=unmerged_onto_trunk(cfg),
     )
+
+
+def head_branch(cfg: Config) -> str:
+    """The branch actually checked out, which is not always the trunk."""
+    return git(cfg, "rev-parse", "--abbrev-ref", "HEAD", check=False).strip()
+
+
+def unmerged_onto_trunk(cfg: Config) -> int:
+    """How many commits sit on HEAD that trunk has never seen.
+
+    The Mark counts landed work, so work on a side branch reads as zero. That
+    is correct arithmetic and a misleading silence: without this number the
+    board cannot tell "you did nothing" from "you did not land it".
+    """
+    out = git(cfg, "rev-list", "--count", f"{cfg.trunk}..HEAD", check=False).strip()
+    return int(out) if out.isdigit() else 0
 
 
 def _annotate(cfg: Config, commit: Commit) -> None:

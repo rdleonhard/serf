@@ -66,6 +66,7 @@ def board(
     prior: list[tuple[str, int]],
     best_mark: int | None,
     register=None,
+    branch_warning: str | None = None,
 ) -> str:
     width = min(shutil.get_terminal_size((80, 24)).columns, 76)
     out: list[str] = []
@@ -112,6 +113,10 @@ def board(
         series = [m for _, m in reversed(prior)] + [stats.mark]
         add("  " + dim(sparkline(series) + "   (oldest → today)"))
     add("")
+
+    if branch_warning:
+        add("  " + bold("⚠ " + branch_warning))
+        add("")
 
     if register is not None and register.changed:
         add("  " + bold(f"REGISTER → {register.level}") + dim(f"  ({register.reason})"))

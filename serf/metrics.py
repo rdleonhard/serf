@@ -118,6 +118,17 @@ def evidence_packet(stats: DayStats, obs: Observation, cfg: Config,
     add = lines.append
 
     add(f"BRANCH: {obs.trunk}")
+    if obs.diverged:
+        add("")
+        add("== BRANCH STATE — READ THIS BEFORE JUDGING THE NUMBER ==")
+        add(f"HEAD is on {obs.head!r}, not {obs.trunk!r}.")
+        add(f"{obs.unmerged} commit(s) sit on {obs.head!r} that {obs.trunk!r} has "
+            "never seen.")
+        add("The Mark counts work landed on trunk, so those commits are NOT in "
+            "the figures below.")
+        add("A low Mark here may mean work not landed rather than work not done. "
+            "Say which you believe it is, and do not accuse him of an idle day "
+            "on this evidence alone.")
     add(f"WINDOW: {obs.since:%Y-%m-%d %H:%M} to {obs.until:%Y-%m-%d %H:%M}")
     add("")
     add("== THE MARK ==")

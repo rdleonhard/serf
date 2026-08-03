@@ -137,6 +137,11 @@ def cmd_mark(args: argparse.Namespace) -> int:
         prior=hist,
         best_mark=best_mark,
         register=reg,
+        branch_warning=(
+            f"on {obs.head!r}, not {obs.trunk!r} — {obs.unmerged} commit(s) "
+            "unlanded and not counted below"
+            if obs.diverged else None
+        ),
     ))
 
     if not args.dry_run:

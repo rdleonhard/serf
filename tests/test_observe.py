@@ -182,3 +182,41 @@ def test_ci_failure_rate_is_none_without_data():
     obs = observe.Observation(since=None, until=None, trunk="main",
                               commits=[], ci=None)
     assert obs.ci_failure_rate is None
+
+
+# --------------------------------------------------------------------------
+# work happening where the Mark is not looking
+
+def test_no_divergence_when_head_is_trunk(repo, cfg, today_window):
+    repo.write("src/a.py", "x = 1\ny = 2\nz = 3\n")
+    repo.commit("on trunk")
+    obs = observe.collect(cfg, *today_window)
+    assert obs.head == "main"
+    assert obs.unmerged == 0
+    assert obs.diverged is False
+
+
+def test_divergence_is_detected_and_counted(repo, cfg, today_window):
+    """The failure that made a whole weekend read as zero."""
+    from tests.conftest import _git
+    repo.write("src/a.py", "x = 1\ny = 2\nz = 3\n")
+    repo.commit("baseline on trunk")
+    _git(repo.path, "checkout", "-q", "-b", "side")
+    repo.write("src/b.py", "a = 1\nb = 2\nc = 3\n")
+    repo.commit("work on the side branch")
+    repo.write("src/c.py", "d = 1\ne = 2\nf = 3\n")
+    repo.commit("more work on the side branch")
+
+    obs = observe.collect(cfg, *today_window)
+    assert obs.head == "side"
+    assert obs.unmerged == 2
+    assert obs.diverged is True
+
+
+def test_a_side_branch_with_nothing_new_is_not_divergence(repo, cfg, today_window):
+    from tests.conftest import _git
+    repo.write("src/a.py", "x = 1\ny = 2\nz = 3\n")
+    repo.commit("baseline")
+    _git(repo.path, "checkout", "-q", "-b", "side")
+    obs = observe.collect(cfg, *today_window)
+    assert obs.diverged is False, "same commit, different name, nothing unlanded"
