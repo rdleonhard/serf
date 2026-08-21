@@ -56,7 +56,7 @@ contract DiemLaunchForkTest {
         // 0. Platform deploys a launch.
         LaunchFactory factory = new LaunchFactory();
         vm.prank(CREATOR);
-        (address poolAddr, address tokenAddr) = factory.createLaunch("Fers", "FERS", 1000e18, address(0), 0);
+        (address poolAddr, address tokenAddr) = factory.createLaunch("Fers", "FERS", 1000e18, 0);
         LaunchPool pool = LaunchPool(poolAddr);
         LaunchToken token = LaunchToken(tokenAddr);
 
@@ -91,7 +91,7 @@ contract DiemLaunchForkTest {
     /// would prove nothing about access control.
     function testOnlyOwnerGuards() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, 0);
 
         vm.startPrank(BUYER);
         vm.expectRevert("NOT_OWNER");
@@ -108,7 +108,7 @@ contract DiemLaunchForkTest {
     /// A buy too small to mint a whole token must revert, not silently eat VVV.
     function testDustBuyReverts() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1, 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 1e18);
 
@@ -124,7 +124,7 @@ contract DiemLaunchForkTest {
     /// already locked (Venice's balanceOf does not).
     function testIncrementalLockAccounting() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 100e18);
         vm.startPrank(BUYER);
@@ -152,7 +152,7 @@ contract DiemLaunchForkTest {
     /// so nobody can divert buyback fuel into permanently-locked principal.
     function testCompoundIsSafeWhenEmptyAndOwnerGated() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, 0);
         vm.prank(BUYER);
         vm.expectRevert("NOT_OWNER");
         pool.compound();
@@ -164,7 +164,7 @@ contract DiemLaunchForkTest {
     /// lockAll: anyone converges the pool to 100% DIEM, exactly at quote.
     function testLockAllPermissionlessAndExact() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, 0);
         vm.prank(address(STAKING));
         VVV.transfer(BUYER, 150e18);
         vm.startPrank(BUYER);
@@ -197,7 +197,7 @@ contract DiemLaunchForkTest {
     /// closeSaleForever: owner-only, kills buy() permanently, reopen impossible.
     function testCloseSaleForever() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Serf", "SERF", 1000e18, 0);
         vm.prank(BUYER);
         vm.expectRevert("NOT_OWNER");
         pool.closeSaleForever();
@@ -242,6 +242,34 @@ contract DiemLaunchForkTest {
         vm.stopPrank();
     }
 
+    /// FRES is a plain reserve ERC-20: single minter (the pool), real burn that
+    /// reduces totalSupply, and only the pool may mint.
+    function testReserveTokenBasics() external {
+        vm.createSelectFork("base", 49489240);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, 0);
+        LaunchToken t = pool.token();
+
+        require(t.decimals() == 18, "decimals");
+        require(t.minter() == address(pool), "pool is minter");
+
+        // nobody but the pool can mint
+        vm.prank(BUYER);
+        vm.expectRevert("NOT_MINTER");
+        t.mint(BUYER, 1e18);
+
+        // a holder burns its own balance and totalSupply falls for real
+        vm.prank(address(STAKING));
+        VVV.transfer(BUYER, 1e18);
+        vm.startPrank(BUYER);
+        VVV.approve(address(pool), 1e18);
+        pool.buy(1e18); // BUYER holds 1000 FERS
+        uint256 supplyBefore = t.totalSupply();
+        t.burn(400e18);
+        vm.stopPrank();
+        require(t.balanceOf(BUYER) == 600e18, "self-burn balance");
+        require(t.totalSupply() == supplyBefore - 400e18, "self-burn reduced supply");
+    }
+
     // ---------------- buyback-and-burn (real Uniswap V3 on fork) ----------------
 
     IUniV3Factory constant UNI_FACTORY = IUniV3Factory(0x33128a8fC17869897dcE68Ed026d694621f6FDfD);
@@ -259,7 +287,7 @@ contract DiemLaunchForkTest {
 
     function testBuybackAndBurn() external {
         vm.createSelectFork("base", 49489240);
-        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, address(0), 0);
+        LaunchPool pool = new LaunchPool(CREATOR, "Fers", "FERS", 1000e18, 0);
         LaunchToken fers = pool.token();
 
         // Buyer converts 200 VVV -> 200k FERS (staked to sVVV inside the pool).

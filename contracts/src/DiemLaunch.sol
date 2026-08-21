@@ -40,18 +40,20 @@ interface ISwapRouter02 {
     function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
 }
 
-/// Minimal ERC-20 minted by its LaunchPool.
+/// FRES: the custom reserve token, minted by its LaunchPool for VVV.
+///
+/// This is the Juicebox v6 revnet's RESERVE / terminal-accounting token, not its
+/// project token. The revnet's project token (SERF) is deployed and minted by JB
+/// itself (JBController.deployERC20For), so a reserve token needs only to be a
+/// standard ERC-20 the terminal can hold, swap, and pair on Uniswap — no IJBToken
+/// interface and no JB mint authority. It therefore has exactly one minter (the
+/// pool); JB never mints FRES.
 contract LaunchToken {
     string public name;
     string public symbol;
     uint8 public constant decimals = 18;
     uint256 public totalSupply;
     address public immutable minter;
-    /// Optional second mint authority, fixed at deployment (zero = none).
-    /// Intended for a Juicebox v4 / revnet controller so the same token can be
-    /// issued by a revnet treasury. Immutable on purpose: an owner-settable
-    /// minter would be an infinite-mint rug vector.
-    address public immutable extraMinter;
 
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
@@ -59,15 +61,14 @@ contract LaunchToken {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
-    constructor(string memory name_, string memory symbol_, address minter_, address extraMinter_) {
+    constructor(string memory name_, string memory symbol_, address minter_) {
         name = name_;
         symbol = symbol_;
         minter = minter_;
-        extraMinter = extraMinter_;
     }
 
     function mint(address to, uint256 amount) external {
-        require(msg.sender == minter || (msg.sender == extraMinter && extraMinter != address(0)), "NOT_MINTER");
+        require(msg.sender == minter, "NOT_MINTER");
         totalSupply += amount;
         balanceOf[to] += amount;
         emit Transfer(address(0), to, amount);
@@ -97,9 +98,9 @@ contract LaunchToken {
         return true;
     }
 
-    /// Destroy the caller's own tokens, reducing totalSupply for real.
-    /// Sending to a dead address does NOT reduce totalSupply, which would make
-    /// explorers and any supply-based redemption formula overstate the float.
+    /// Destroy the caller's own tokens, reducing totalSupply for real (the pool
+    /// calls this on bought-back FRES). A transfer to a dead address would leave
+    /// totalSupply overstated for explorers and any supply-based math.
     function burn(uint256 amount) external {
         balanceOf[msg.sender] -= amount;
         totalSupply -= amount;
@@ -133,11 +134,9 @@ contract LaunchPool {
     /// public getter for the locked portion, so the pool tracks it here.
     uint256 public totalLocked;
 
-    /// Hard cap on launch-token supply from buy() (0 = uncapped). Immutable:
-    /// a raisable cap is indistinguishable from no cap.
-    /// SCOPE WARNING: this bounds buy() ONLY. A non-zero LaunchToken.extraMinter
-    /// (e.g. a revnet controller) can mint past it. The cap is not a supply
-    /// guarantee unless extraMinter is address(0) or itself capped.
+    /// Hard cap on FRES supply (0 = uncapped). Immutable: a raisable cap is
+    /// indistinguishable from no cap. The pool is FRES's only minter and buy()
+    /// is its only mint path, so this is a true, total supply ceiling.
     uint256 public immutable maxSaleSupply;
     uint256 public soldSupply;
 
@@ -175,14 +174,13 @@ contract LaunchPool {
         string memory name_,
         string memory symbol_,
         uint256 tokensPerVVV_,
-        address extraMinter_,
         uint256 maxSaleSupply_
     ) {
         require(owner_ != address(0) && tokensPerVVV_ != 0, "BAD_PARAMS");
         owner = owner_;
         tokensPerVVV = tokensPerVVV_;
         maxSaleSupply = maxSaleSupply_;
-        token = new LaunchToken(name_, symbol_, address(this), extraMinter_);
+        token = new LaunchToken(name_, symbol_, address(this));
     }
 
     /// Pay VVV, receive launch tokens; the VVV is staked to sVVV in the same tx.
@@ -368,16 +366,14 @@ contract LaunchFactory {
 
     event LaunchCreated(address indexed pool, address indexed token, address indexed owner, string symbol);
 
-    /// extraMinter_: optional second mint authority for the launch token, fixed
-    /// forever (e.g. a Juicebox v4 / revnet controller). Zero for none.
+    /// maxSaleSupply_: hard cap on FRES supply, or 0 for uncapped. Fixed forever.
     function createLaunch(
         string calldata name_,
         string calldata symbol_,
         uint256 tokensPerVVV_,
-        address extraMinter_,
         uint256 maxSaleSupply_
     ) external returns (address pool, address token) {
-        LaunchPool p = new LaunchPool(msg.sender, name_, symbol_, tokensPerVVV_, extraMinter_, maxSaleSupply_);
+        LaunchPool p = new LaunchPool(msg.sender, name_, symbol_, tokensPerVVV_, maxSaleSupply_);
         pools.push(address(p));
         emit LaunchCreated(address(p), address(p.token()), msg.sender, symbol_);
         return (address(p), address(p.token()));

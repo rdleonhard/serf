@@ -33,12 +33,11 @@ contract Deploy {
         string memory name_ = vm.envOr("TOKEN_NAME", string("Fers"));
         string memory symbol_ = vm.envOr("TOKEN_SYMBOL", string("FERS"));
         uint256 rate = vm.envOr("TOKENS_PER_VVV", uint256(1000e18));
-        address extraMinter = vm.envOr("EXTRA_MINTER", address(0));
         uint256 cap = vm.envOr("MAX_SALE_SUPPLY", uint256(10_000_000e18));
 
         vm.startBroadcast();
         LaunchFactory f = new LaunchFactory();
-        (pool, token) = f.createLaunch(name_, symbol_, rate, extraMinter, cap);
+        (pool, token) = f.createLaunch(name_, symbol_, rate, cap);
         vm.stopBroadcast();
 
         factory = address(f);

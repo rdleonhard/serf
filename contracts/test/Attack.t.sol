@@ -60,7 +60,7 @@ contract AttackTest {
     }
 
     function _newPool(uint256 rate, uint256 cap) internal returns (LaunchPool p) {
-        p = new LaunchPool(CREATOR, "Fers", "FERS", rate, address(0), cap);
+        p = new LaunchPool(CREATOR, "Fers", "FERS", rate, cap);
     }
 
     // ------------------------------------------------------------------
